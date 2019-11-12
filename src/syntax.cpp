@@ -265,7 +265,7 @@ void factor() {
             bool returned = (*symTable.find(token, 0, true)).is_ret_func();
             if (!returned) {
                 // use a void func as a factor
-                // globalErr.catch_e(line, "e");
+                //globalErr.catch_e(line, "e");
                 n_r_f_stat();
             } else {
                 r_f_stat(false);
