@@ -12,7 +12,7 @@ bool isNegative = false;
 BaseType returnStatType;
 InterSym * expression();
 
-void r_f_stat(bool reportIdenNotFindError);
+InterSym* r_f_stat(bool reportIdenNotFindError);
 
 void n_r_f_stat();
 
@@ -275,12 +275,10 @@ InterSym* factor() {
             if (exp->baseType != BaseType::INT) {
                 globalErr.catch_e(line, "i");
             }
-			genInter.prt_str(iS->name + " = " + varName + '[' + exp->name + "]\n");
+			genInter.prt(iS->name + " = " + varName + '[' + exp->name + "]\n");
             assert_symbol_is(Symbol::RBRACK);
             getsym();
         } else if (symbol == Symbol::LPARENT) {	// func result
-			iS->interType = InterType::INTER;
-			iS->set_tmp_name();
             sym_retract();
             sym_retract();
             getsym();
@@ -290,7 +288,7 @@ InterSym* factor() {
                 //globalErr.catch_e(line, "e");
                 n_r_f_stat();
             } else {
-                r_f_stat(false);
+                iS = r_f_stat(false);
             }
         }
     } else if (symbol == Symbol::LPARENT) {
@@ -348,7 +346,7 @@ InterSym* item() {
 		getsym();
 		return firstFact;
 	}
-	genInter.prt_str(toPrint + "\n");
+	genInter.prt(toPrint + "\n");
     find_syn_part("<项>");
     getsym();
 	return iS;
@@ -394,7 +392,7 @@ InterSym * expression() {
 		toPrint += item()->name;	// 项
     }
     sym_retract();
-	genInter.prt_str(toPrint + "\n");
+	genInter.prt(toPrint + "\n");
     sym_output();
     find_syn_part("<表达式>");
     getsym();
@@ -402,14 +400,16 @@ InterSym * expression() {
     return iSym;
 }
 
-vector<SymbolC> * val_para_list(SymbolC *func) {
-	vector<SymbolC> *vec = new vector <SymbolC>;
+vector<InterSym*> val_para_list(SymbolC *func) {
+	vector<InterSym*> vec;
     int paraCnt = 0;
     if (symbol != Symbol::RPARENT) {
         paraCnt++;
+		InterSym* exp = expression();
+		vec.push_back(exp);
         if (paraCnt > (*func).args.size()) {
-            expression();
-        } else if (expression()->baseType != (*(*func).args.at(paraCnt - 1)).spec.baseType) {
+			;
+        } else if (exp->baseType != (*(*func).args.at(paraCnt - 1)).spec.baseType) {
             sym_retract();
             globalErr.catch_e(line, "e");
             getsym();
@@ -417,9 +417,11 @@ vector<SymbolC> * val_para_list(SymbolC *func) {
         while (symbol == Symbol::COMMA) {
             getsym();
             paraCnt++;
+			InterSym* exp = expression();
+			vec.push_back(exp);
             if (paraCnt > (*func).args.size()) {
-                expression();
-            } else if (expression()->baseType != (*(*func).args.at(paraCnt - 1)).spec.baseType) {
+				;
+            } else if (exp->baseType != (*(*func).args.at(paraCnt - 1)).spec.baseType) {
                 sym_retract();
                 globalErr.catch_e(line, "e");
                 getsym();
@@ -436,7 +438,11 @@ vector<SymbolC> * val_para_list(SymbolC *func) {
 	return vec;
 }
 
-void r_f_stat(bool reportIdenNotFindError) {
+InterSym* r_f_stat(bool reportIdenNotFindError) {
+	InterSym* iS = new InterSym;
+	iS->interType = InterType::INTER;
+	iS->name = "RET";
+	string toPrint = "";
     assert_symbol_is(Symbol::IDENFR);
     SymbolC *fun = new SymbolC();
     if (symTable.contain(token, curLevel, true)) {
@@ -447,14 +453,21 @@ void r_f_stat(bool reportIdenNotFindError) {
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
-    vector<SymbolC> * paras_list = val_para_list(fun);
+    vector<InterSym *> paras_list = val_para_list(fun);
+	for (int i = 0; i < paras_list.size(); i++) {
+		toPrint += "push " + paras_list.at(i)->name + '\n';
+	}
+	toPrint += "call " + fun->name + '\n';
     assert_symbol_is(Symbol::RPARENT);
+	genInter.prt(toPrint);
     sym_output();
     find_syn_part("<有返回值函数调用语句>");
     getsym();
+	return iS;
 }
 
 void n_r_f_stat() {
+	string toPrint = "";
     assert_symbol_is(Symbol::IDENFR);
     SymbolC *fun = new SymbolC();
     if (symTable.contain(token, curLevel, true)) {
@@ -465,67 +478,105 @@ void n_r_f_stat() {
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
-    val_para_list(fun);
+	vector<InterSym*> paras_list = val_para_list(fun);
+	for (int i = 0; i < paras_list.size(); i++) {
+		toPrint += "push " + paras_list.at(i)->name + '\n';
+	}
+	toPrint += "call " + fun->name + '\n';
     assert_symbol_is(Symbol::RPARENT);
     sym_output();
+	genInter.prt(toPrint);
     find_syn_part("<无返回值函数调用语句>");
     getsym();
 }
 
 void condition() {
-    if (expression()->baseType != BaseType::INT) {
+	string toPrint = "";
+	auto exp = expression();
+    if (exp->baseType != BaseType::INT) {
         globalErr.catch_e(line, "f");
     }
+	toPrint += exp->name;
     if (bool_relat_op()) {
+		toPrint += " " + token + " ";
         getsym();
-        if (expression()->baseType != BaseType::INT) {
+		auto exp = expression();
+        if (exp->baseType != BaseType::INT) {
             globalErr.catch_e(line, "f");
         }
+		toPrint += exp->name;
     }
     sym_retract();
     sym_output();
+	genInter.prt(toPrint + "\n");
     find_syn_part("<条件>");
     getsym();
 }
 
 void if_stat(bool returned) {
+	string lb1 = genInter.gen_label();
     assert_symbol_is(Symbol::IFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     condition();
     assert_symbol_is(Symbol::RPARENT);
+	genInter.prt("BZ " + lb1 + '\n');
     getsym();
     statement(returned);
     if (symbol == Symbol::ELSETK) {
+		string lb2 = genInter.gen_label();
+		genInter.prt("GOTO " + lb2 + '\n');
+		genInter.prt(lb1 + " :\n");
         getsym();
         statement(returned);
-    }
+		genInter.prt(lb2 + " :\n");
+	} else {
+		genInter.prt(lb1 + " :\n");
+	}
     sym_retract();
     sym_output();
     find_syn_part("<条件语句>");
     getsym();
 }
 
-void step_len() {
+int step_len() {
     is_unsigned_int();
+	int ret = number;
     find_syn_part("<步长>");
     getsym();
+	return ret;
 }
 
 void loop_stat(bool returned) {
+	string toPrint = "";
+	string lb1 = genInter.gen_label(), lb2;
+	string idfr, idfr2, op;
+	int stepLen;
     switch (symbol) {
         case Symbol::WHILETK:
             getsym();
             assert_symbol_is(Symbol::LPARENT);
             getsym();
+			toPrint += (lb1 + " :\n");
+			genInter.prt(toPrint);
+			toPrint = "";
             condition();
+			lb2 = genInter.gen_label();
+			toPrint += ("BZ " + lb2 + '\n');
             assert_symbol_is(Symbol::RPARENT);
             getsym();
+			genInter.prt(toPrint);
+			toPrint = "";
             statement(returned);
+			toPrint += ("GOTO " + lb1 + "\n");
+			toPrint += (lb2 + " :\n");
             break;
         case Symbol::DOTK:
             getsym();
+			toPrint += (lb1 + " :\n");
+			genInter.prt(toPrint);
+			toPrint = "";
             statement(returned);
             assert_symbol_is(Symbol::WHILETK);
             getsym();
@@ -533,6 +584,7 @@ void loop_stat(bool returned) {
             getsym();
             condition();
             assert_symbol_is(Symbol::RPARENT);
+			toPrint += ("BNZ " + lb1 + '\n');
             getsym();
             break;
         case Symbol::FORTK:
@@ -540,68 +592,90 @@ void loop_stat(bool returned) {
             assert_symbol_is(Symbol::LPARENT);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
+			toPrint += (token + " = ");
             getsym();
             assert_symbol_is(Symbol::ASSIGN);
             getsym();
-            expression();
+			toPrint += (expression()->name + "\n");
             assert_symbol_is(Symbol::SEMICN);
+			toPrint += (lb1 + " :\n");
             getsym();
+			genInter.prt(toPrint);
+			toPrint = "";
             condition();
+			lb2 = genInter.gen_label();
+			toPrint += ("BZ " + lb2 + "\n");
             assert_symbol_is(Symbol::SEMICN);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
+			idfr = token;
             getsym();
             assert_symbol_is(Symbol::ASSIGN);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
+			idfr2 = token;
             getsym();
             if (symbol != Symbol::PLUS && symbol != Symbol::MINU) error();
+			op = token;
             getsym();
-            step_len();
+            stepLen = step_len();
             assert_symbol_is(Symbol::RPARENT);
             getsym();
+			genInter.prt(toPrint);
+			toPrint = "";
             statement(returned);
+			toPrint += (idfr + " = " + idfr2 + " " + op + " " + to_string(stepLen) + "\n");
+			toPrint += ("GOTO " + lb1 + '\n');
+			toPrint += (lb2 + " :\n");
             break;
         default:
             break;
     }
     sym_retract();
+	genInter.prt(toPrint);
     sym_output();
     find_syn_part("<循环语句>");
     getsym();
 }
 
 void val_stat() {
+	string toPrint = "";
     assert_symbol_is(Symbol::IDENFR);
+	toPrint += token;
     if (!symTable.contain(token, curLevel, true)) {
         globalErr.catch_e(line, "c");
     } else if (symTable.find(token, curLevel, true)->spec.isConst) {
         globalErr.catch_e(line, "j");
     }
     getsym();
-    if (symbol == Symbol::LBRACK) {
+    if (symbol == Symbol::LBRACK) {	// array
         getsym();
-        if (expression()->baseType != BaseType::INT) {
+		InterSym* exp = expression();
+        if (exp->baseType != BaseType::INT) {
             globalErr.catch_e(line, "i");
         }
+		toPrint += "[" + exp->name + "]";
         assert_symbol_is(Symbol::RBRACK);
         getsym();
     }
     assert_symbol_is(Symbol::ASSIGN);
     getsym();
-    expression();
+	toPrint += " = " + expression()->name + "\n";
     sym_retract();
+	genInter.prt(toPrint);
     sym_output();
     find_syn_part("<赋值语句>");
     getsym();
 }
 
 void scan_stat() {
+	string toPrint = "";
     assert_symbol_is(Symbol::SCANFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     assert_symbol_is(Symbol::IDENFR);
+	toPrint += "push " + token + "\n";
     if (!symTable.contain(token, curLevel, true)) {
         globalErr.catch_e(line, "c");
     }
@@ -612,15 +686,18 @@ void scan_stat() {
         if (!symTable.contain(token, curLevel, true)) {
             globalErr.catch_e(line, "c");
         }
+		toPrint += "push " + token + "\n";
         getsym();
     }
     assert_symbol_is(Symbol::RPARENT);
     sym_output();
+	genInter.prt(toPrint + "SCAN\n");
     find_syn_part("<读语句>");
     getsym();
 }
 
 void prt_stat() {
+	string toPrint = "";
     assert_symbol_is(Symbol::PRINTFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
@@ -628,34 +705,41 @@ void prt_stat() {
     if (symbol == Symbol::STRCON) {
         sym_output();
         find_syn_part("<字符串>");
+		toPrint += "push \"" + token + "\"\n";
         getsym();
         if (symbol == Symbol::COMMA) {
             getsym();
             expression();
         }
     } else {
-        expression();
+		toPrint += "push " + expression()->name + "\n";
     }
     assert_symbol_is(Symbol::RPARENT);
     sym_output();
+	genInter.prt(toPrint + "PRINT\n");
     find_syn_part("<写语句>");
     getsym();
 }
 
 bool ret_stat(bool returned) {
+	string toPrint = "";
     bool forReturnFStat = false;
-    assert_symbol_is(Symbol::RETURNTK);
+	assert_symbol_is(Symbol::RETURNTK);
+	toPrint += "ret";
     getsym();
     if (symbol == Symbol::LPARENT) {
         forReturnFStat = true;
         getsym();
-        if (expression()->baseType != returnStatType && returned) {
+		InterSym* exp = expression();
+        if (exp->baseType != returnStatType && returned) {
             globalErr.catch_e(line, "h");
         }
+		toPrint += " " + exp->name;
         assert_symbol_is(Symbol::RPARENT);
         getsym();
     }
     sym_retract();
+	genInter.prt(toPrint + "\n");
     sym_output();
     find_syn_part("<返回语句>");
     getsym();

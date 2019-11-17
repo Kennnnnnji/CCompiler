@@ -4,12 +4,8 @@ GenInter::GenInter() {
 	interfile.open("inter.txt");
 }
 
-void GenInter::prt_str(string s) {
+void GenInter::prt(string s) {
 	interfile << s;
-}
-
-void GenInter::prt_endl() {
-	interfile << endl;
 }
 
 void GenInter::prt_inter_sym(InterSym is) {
@@ -21,21 +17,7 @@ void GenInter::find_func_def(SymbolC func) {
 	for (int i = 0; i < (func.args).size(); i++) {
 		SymbolC param = *func.args[i];
 		interfile << "para " << types[static_cast<int>(param.spec.baseType)] << " " << param.name << endl;
-
 	}
-}
-
-template<class T>
-int length_of_array(T& arr) {
-	return sizeof(arr) / sizeof(arr[0]);
-}
-
-void GenInter::find_func_use(SymbolC func, SymbolC *paras, SymbolC ret) {
-	for (int i = 0; i < length_of_array(paras); i++) {
-		interfile << "push " << paras[i].name << endl;
-	}
-	interfile << "call " << func.name << endl;
-	interfile << ret.name << " = RET" << endl;
 }
 
 void GenInter::find_const_var_def(SymbolC constVar) {
@@ -50,4 +32,11 @@ void GenInter::find_const_var_def(SymbolC constVar) {
 
 void GenInter::find_normal_var_def(SymbolC constVar) {
 	interfile << "var " << types[static_cast<int>(constVar.spec.baseType)] << " " << constVar.name << endl;
+}
+
+string GenInter::gen_label() {
+	static int cnt = 0;
+	string label = "Label_" + to_string(cnt++);
+	//interfile << label + " :" << endl;
+	return label;
 }
