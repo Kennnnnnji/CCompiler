@@ -111,6 +111,7 @@ SymbolEntry* SymbolEntry::getNext() {
 
 SymbolC::SymbolC() {
 	valid = false;
+	duplicate = true;
 }
 
 SymbolC::SymbolC(string nam, int lev, int lin, Specifier spc) {

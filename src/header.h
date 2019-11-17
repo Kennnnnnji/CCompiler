@@ -5,6 +5,10 @@
 #include <list>
 #include "table.h"
 #include "cError.h"
+#include "GenInter.h"
+#include "InterSym.h"
+#include "Register.h"
+
 using namespace std;
 
 enum class Symbol {
@@ -28,6 +32,10 @@ extern Symbol symbol;
 extern ofstream outfile;
 extern SymTable symTable;
 extern CError globalErr;
+extern GenInter genInter;
+extern int number;
+extern char character;
+extern Register reg;
 
 int next();
 int sub_lines();

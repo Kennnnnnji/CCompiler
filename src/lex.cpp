@@ -102,6 +102,7 @@ int next() {
 			catToken();
 			char_getchar();
 		}
+		number = stoi(token);
 		retract();
 	} else if (curChar == '=') {
 		symbol = Symbol::ASSIGN;
@@ -135,6 +136,7 @@ int next() {
 		if (addmul.find(curChar) == addmul.end() && !isalnum(curChar)) {
 			globalErr.catch_e(line, "a");
 		}
+		character = curChar;
 		char_getchar();
 		if (curChar != '\'') {
 			// error();

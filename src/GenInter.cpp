@@ -4,6 +4,18 @@ GenInter::GenInter() {
 	interfile.open("inter.txt");
 }
 
+void GenInter::prt_str(string s) {
+	interfile << s;
+}
+
+void GenInter::prt_endl() {
+	interfile << endl;
+}
+
+void GenInter::prt_inter_sym(InterSym is) {
+	interfile << "*" << is.name;
+}
+
 void GenInter::find_func_def(SymbolC func) {
 	interfile << types[static_cast<int>(func.spec.baseType)] << " " << func.name << "()" << endl;
 	for (int i = 0; i < (func.args).size(); i++) {
@@ -37,5 +49,5 @@ void GenInter::find_const_var_def(SymbolC constVar) {
 }
 
 void GenInter::find_normal_var_def(SymbolC constVar) {
-	interfile << types[static_cast<int>(constVar.spec.baseType)] << " " << constVar.name << endl;
+	interfile << "var " << types[static_cast<int>(constVar.spec.baseType)] << " " << constVar.name << endl;
 }

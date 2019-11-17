@@ -7,11 +7,15 @@ int line = 1;
 char* src;
 int cur, fileSize;
 char curChar;
+int number;
+char character;
 string token;
 Symbol symbol;
 SymTable symTable;
 CError globalErr;
+GenInter genInter;
 ofstream outfile("output.txt");
+Register reg;
 
 int main() {
 	ifstream infile("testfile.txt");

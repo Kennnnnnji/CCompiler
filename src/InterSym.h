@@ -1,16 +1,24 @@
 #pragma once
 #include "table.h"
+#include <string>
 
-enum class interSymType{
-
+enum class InterType{
+	INTER, INTCONST, CHARCONST, STRCONST, SYMC	// maybe array
 };
 
 class InterSym {
 private:
 public:
-    bool isInter;   // created inter sym by compiler
+	int intcon;
+	char charcon;
+	string strcon;
+	InterType interType;   // created inter sym by compiler
 	SymbolC* symc;
 	string name;
     BaseType baseType;
+
+	InterSym();
+	void set_inter_type(InterType it);
+	void set_tmp_name();
 };
 

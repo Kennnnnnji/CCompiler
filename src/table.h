@@ -38,6 +38,7 @@ public:
 	int line;		// declared line count
 	vector<int> refVec;	// refered lines
 	int level;		// variable level
+	int value;		// value of var
 	bool implicit = false;	//是否是匿名变量
 	bool duplicate = false;	//是否是同名变量
 	bool func = false;
