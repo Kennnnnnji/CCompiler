@@ -53,7 +53,7 @@ SymbolC* SymTable::add(SymbolC s, int out_level) {
 	int l = s.level;
 	if (contain(s.name, l, false)) {
 		// dup var
-		globalErr.catch_e(line, "b");
+		globalErr.catch_e(curLineNum, "b");
 		return new SymbolC();
 	}
 	sym_map.insert(pair<string, SymbolC>(s.name, s));

@@ -7,10 +7,10 @@ CError::CError() {
 	}
 }
 
-void CError::prt_error(int line_num, string message) {
+void CError::prt_error(int line_num, const string& message) {
 	errfile << line_num << ' ' << message << '\n';
 }
 
-void CError::catch_e(int line_num, string errType) {
+void CError::catch_e(int line_num, const string& errType) {
 	prt_error(line_num, errType);
 }

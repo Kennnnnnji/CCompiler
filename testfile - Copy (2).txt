@@ -1,0 +1,22 @@
+const int const1 = 1, const2 = -100;
+const char const3 = '?';
+int change1;
+char change3;
+int a, b, c, d, e;
+int gets1(int var1,char var1){
+	change1 = -a+b+(c+d)*e[1];
+	e[2] = change1 + 2;
+   change1 = var1 + var2;  
+   return (change1);
+}
+void unret() {
+	return;
+}
+void main(){ $
+   change1 = 10;
+	scanf(change1);
+   a = gets1(10, 'a');
+   printf("Hello World", gets1(10, 'a'));
+   for (a = 6; b; a = a + 1)
+	c = 7;
+}

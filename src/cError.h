@@ -10,6 +10,6 @@ private:
 	ofstream errfile;
 public:
 	CError();
-	void prt_error(int line_num, string message);
-	void catch_e(int line_num, string errType);
+	void prt_error(int line_num, const string& message);
+	void catch_e(int line_num, const string& errType);
 };

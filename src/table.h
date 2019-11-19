@@ -7,7 +7,7 @@
 using namespace std;
 
 enum class BaseType {
-	VOID, INT, CHAR,
+	VOID, INT, CHAR, STRING
 };
 
 struct f {
@@ -33,16 +33,18 @@ public:
 	string rname;
 
 	int addr;		// address
-	int size;		// bytes
+	int size = 4;		// bytes
 	int dims;		// dimension
-	int line;		// declared line count
-	vector<int> refVec;	// refered lines
+	int line;		// declared curLineNum count
+	vector<int> refVec;	// refered linesInter
 	int level;		// variable level
 	int value;		// value of var
-	bool implicit = false;	//是否是匿名变量
 	bool duplicate = false;	//是否是同名变量
 	bool func = false;
 	bool param = false;
+	bool arr = false;
+	string strVal;
+
 	Specifier spec;
 
 	vector<SymbolC *> args;	//如果该符号对应的是函数名,那么args指向函数的输入参数符号列表
@@ -85,7 +87,7 @@ public:
 
 class SymTable {
 public:
-	unordered_map<string, SymbolC> sym_map;
+	unordered_multimap<string, SymbolC> sym_map;
 	vector<SymbolEntry> entryVec;
 	vector<f> fVec;
 	bool contain(string ss);

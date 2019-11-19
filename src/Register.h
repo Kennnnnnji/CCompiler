@@ -1,14 +1,25 @@
 #pragma once
+#include <string>
+
+enum class RegType {
+    ZERO, AT, V, A, T, S, GP, SP, FP, RA/*
+    zero;
+    Register at;
+    Register v[2];
+    Register a[4];
+    Register t[10];	// t0-t7, s0-s7, t8-t9
+    Register s[8];
+    Register gp, sp, fp, ra;*/
+};
+
 class Register {
 public:
-	static int status[32];
-	int zero;
-	int at;
-	int v[2];
-	int a[4];
-	int t[8];
-	int s[8];
-	int tt[2];	// t8, t9
-	int gp, sp, fp, ra;
+    RegType type;
+    int id;
+	std::string name = "";
+	int value{};
+	bool idle{};
+
+	Register(RegType t, int id);
 };
 

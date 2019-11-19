@@ -77,7 +77,7 @@ int next() {
 	clear_token();
 	char_getchar();
 	while (isspace(curChar)) {	// ' ', '\n', '\v', '\t', '\f', '\r'
-		if (curChar == '\n') { line++; }
+		if (curChar == '\n') { curLineNum++; }
 		char_getchar();
 	}
 	if (curChar == '\0') {	// end of source string
@@ -134,13 +134,13 @@ int next() {
 		token = curChar;	// Escape characters incomplete!!!
 		set<char> addmul({ '+','-','*','/' });
 		if (addmul.find(curChar) == addmul.end() && !isalnum(curChar)) {
-			globalErr.catch_e(line, "a");
+			globalErr.catch_e(curLineNum, "a");
 		}
 		character = curChar;
 		char_getchar();
 		if (curChar != '\'') {
 			// error();
-			globalErr.catch_e(line, "a");
+			globalErr.catch_e(curLineNum, "a");
 		}
 	} else if (curChar == '\"') {	// string
 		symbol = Symbol::STRCON;
@@ -150,14 +150,14 @@ int next() {
 		while (curChar && curChar != '\"') {
 			// 十进制编码为32,33,35-126的ASCII字符
 			if (curChar != 32 && curChar != 33 && curChar < 35 && curChar > 126) {
-				globalErr.catch_e(line, "a");
+				globalErr.catch_e(curLineNum, "a");
 			}
 			token += curChar;
 			char_getchar();
 		}
 		if (curChar != '\"') {
 			// error();
-			globalErr.catch_e(line, "a");
+			globalErr.catch_e(curLineNum, "a");
 		}
 	} else if (curChar == ';') {
 		symbol = Symbol::SEMICN;
@@ -197,7 +197,7 @@ int next() {
 		symbol = Symbol::RBRACE;
 	} else {
 		// error();
-		globalErr.catch_e(line, "a");
+		globalErr.catch_e(curLineNum, "a");
 		return next();
 	}
 	return 0;
@@ -232,7 +232,7 @@ int sub_lines() {
 }
 
 void sym_retract() {
-	line -= sub_lines();
+    curLineNum -= sub_lines();
 	cur = last;
 	last = last2;
 	last2 = last3;

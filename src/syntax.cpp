@@ -10,9 +10,10 @@ using namespace std;
 int curLevel = 0;
 bool isNegative = false;
 BaseType returnStatType;
-InterSym * expression();
 
-InterSym* r_f_stat(bool reportIdenNotFindError);
+InterSym *expression();
+
+InterSym *r_f_stat(bool reportIdenNotFindError);
 
 void n_r_f_stat();
 
@@ -58,19 +59,19 @@ bool assert_symbol_is(Symbol sy) {
         error();
         switch (sy) {
             case Symbol::SEMICN:
-                globalErr.catch_e(line - sub_lines(), "k");
+                globalErr.catch_e(curLineNum - sub_lines(), "k");
                 sym_retract();
                 break;
             case Symbol::RPARENT:
-                globalErr.catch_e(line, "l");
+                globalErr.catch_e(curLineNum, "l");
                 sym_retract();
                 break;
             case Symbol::RBRACK:
-                globalErr.catch_e(line, "m");
+                globalErr.catch_e(curLineNum, "m");
                 sym_retract();
                 break;
             case Symbol::WHILETK:
-                globalErr.catch_e(line, "n");
+                globalErr.catch_e(curLineNum, "n");
                 sym_retract();
                 break;
             default:
@@ -95,7 +96,7 @@ bool is_unsigned_int() {
 
 bool is_int() {
     if (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
-		isNegative = (symbol == Symbol::MINU);
+        isNegative = (symbol == Symbol::MINU);
         getsym();
     }
     bool ret = is_unsigned_int();
@@ -120,17 +121,17 @@ void const_definition() {
             Specifier spc(true, BaseType::INT);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
-            SymbolC symC(token, curLevel, line, spc);
+            SymbolC symC(token, curLevel, curLineNum, spc);
             getsym();
             assert_symbol_is(Symbol::ASSIGN);
             getsym();
             if (!is_int()) {
-                globalErr.catch_e(line, "o");
+                globalErr.catch_e(curLineNum, "o");
             }
-			symC.value = (isNegative) ? -number : number;
-			if (!symTable.add(symC, get_out_level())->duplicate) {
-				genInter.find_const_var_def(symC);
-			}
+            symC.value = (isNegative) ? -number : number;
+            if (!symTable.add(symC, get_out_level())->duplicate) {
+                genInter.find_const_var_def(symC);
+            }
             getsym();
         } while (symbol == Symbol::COMMA);
     } else if (token == "char") {
@@ -138,17 +139,17 @@ void const_definition() {
             Specifier spc(true, BaseType::CHAR);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
-            SymbolC symC(token, curLevel, line, spc);
+            SymbolC symC(token, curLevel, curLineNum, spc);
             getsym();
             assert_symbol_is(Symbol::ASSIGN);
             getsym();
             if (!assert_symbol_is(Symbol::CHARCON)) {
-                globalErr.catch_e(line, "o");
+                globalErr.catch_e(curLineNum, "o");
             }
-			symC.value = character;
-			if (!symTable.add(symC, get_out_level())->duplicate) {
-				genInter.find_const_var_def(symC);
-			}
+            symC.value = character;
+            if (!symTable.add(symC, get_out_level())->duplicate) {
+                genInter.find_const_var_def(symC);
+            }
             getsym();
         } while (symbol == Symbol::COMMA);
     } else {
@@ -196,18 +197,20 @@ void var_definition(Symbol varsym) {
         sbtype2bstype(varsym, &spc);
         getsym();
         assert_symbol_is(Symbol::IDENFR);
-        SymbolC sbc(token, curLevel, line, spc);
-		if (!symTable.add(sbc, get_out_level())->duplicate) {
-			genInter.find_normal_var_def(sbc);
-		}
+        SymbolC sbc(token, curLevel, curLineNum, spc);
         getsym();
         if (token.at(0) == '[') {
             getsym();
             is_unsigned_int();
+			sbc.arr = true;
+			sbc.size = number * 4;
             getsym();
             if (token.at(0) != ']') error();
             getsym();
         }
+		if (!symTable.add(sbc, get_out_level())->duplicate) {
+			genInter.find_normal_var_def(sbc);
+		}
     }
     sym_retract();
     sym_output();
@@ -224,20 +227,22 @@ void var_description() {
         sbtype2bstype(symbol, &spc);
         getsym();
         assert_symbol_is(Symbol::IDENFR);
-        SymbolC sbc(token, curLevel, line, spc);
+        SymbolC sbc(token, curLevel, curLineNum, spc);
         getsym();
         // var, else ret_func
         if (token.at(0) == '[' || token.at(0) == ',' || token.at(0) == ';') {
             if (token.at(0) == '[') {
                 getsym();
                 is_unsigned_int();
+				sbc.arr = true;
+				sbc.size = number * 4;
                 getsym();
                 if (token.at(0) != ']') error();
                 getsym();
             }
-			if (!symTable.add(sbc, get_out_level())->duplicate) {
-				genInter.find_normal_var_def(sbc);
-			}
+            if (!symTable.add(sbc, get_out_level())->duplicate) {
+                genInter.find_normal_var_def(sbc);
+            }
             var_definition(varsym);
             if (token.at(0) != ';') error();
             getsym();
@@ -256,57 +261,59 @@ void var_description() {
     getsym();
 }
 
-InterSym* factor() {
-	string toPrint = "";
-	InterSym* iS = new InterSym();
+InterSym *factor() {
+    string toPrint;
+    InterSym *iS = new InterSym();
     if (symbol == Symbol::IDENFR) {
-		string varName = token;
-		iS->interType = InterType::SYMC;
-		iS->name = token;
+        string varName = token;
+        iS->interType = InterType::SYMC;
+        iS->name = token;
         if (!symTable.contain(token, curLevel, true)) {
-            globalErr.catch_e(line, "c");
+            globalErr.catch_e(curLineNum, "c");
         }
         getsym();
         if (symbol == Symbol::LBRACK) {    // '[', array
-			iS->set_inter_type(InterType::INTER);
-			iS->set_tmp_name();
+            iS->set_inter_type(InterType::INTER);
+            iS->set_tmp_name();
             getsym();
-			InterSym* exp = expression();
+            InterSym *exp = expression();
             if (exp->baseType != BaseType::INT) {
-                globalErr.catch_e(line, "i");
+                globalErr.catch_e(curLineNum, "i");
             }
-			genInter.prt(iS->name + " = " + varName + '[' + exp->name + "]\n");
+            genInter.prt(iS->name + " = _" + varName + '[' + exp->name + "]\n");
             assert_symbol_is(Symbol::RBRACK);
             getsym();
-        } else if (symbol == Symbol::LPARENT) {	// func result
+        } else if (symbol == Symbol::LPARENT) {    // func result
+            iS->interType = InterType::INTER;
             sym_retract();
             sym_retract();
             getsym();
             bool returned = (*symTable.find(token, 0, true)).is_ret_func();
             if (!returned) {
                 // use a void func as a factor
-                //globalErr.catch_e(line, "e");
+                //globalErr.catch_e(curLineNum, "e");
                 n_r_f_stat();
             } else {
                 iS = r_f_stat(false);
             }
         }
     } else if (symbol == Symbol::LPARENT) {
-		iS->interType = InterType::INTER;
+        iS->interType = InterType::INTER;
         getsym();
         iS->name = expression()->name;
         assert_symbol_is(Symbol::RPARENT);
         getsym();
     } else if (symbol == Symbol::PLUS || symbol == Symbol::MINU
                || symbol == Symbol::INTCON) {
-		if (symbol == Symbol::MINU) { iS->name += '-'; }
-		iS->interType = InterType::INTCONST;
+        if (symbol == Symbol::MINU) { iS->name += '-'; }
+        iS->interType = InterType::INTCONST;
         is_int();
-		iS->name += to_string(number);
+        iS->name += to_string(number);
         getsym();
     } else if (symbol == Symbol::CHARCON) {
-		iS->interType = InterType::CHARCONST;
-		iS->name = '\'' + token + '\'';
+        iS->interType = InterType::CHARCONST;
+        iS->name = '\'' + token + '\'';
+		iS->singleChar = true;
         getsym();
     } else {
         error();
@@ -315,53 +322,60 @@ InterSym* factor() {
     sym_output();
     find_syn_part("<因子>");
     getsym();
-	return iS;
+    return iS;
 }
 
-InterSym* item() {
-	string toPrint = "";
-	InterSym* iS = new InterSym();
-	InterSym* firstFact = factor();
-	int cnt = 1;
-	bool factorOver1 = false;
+InterSym *item() {
+    string toPrint;
+    InterSym *iS = new InterSym();
+    InterSym *firstFact = factor();
+	//firstFact->singleChar = firstFact->singleChar;
+    int cnt = 1;
+    bool factorOver1 = false;
     while (symbol == Symbol::MULT || symbol == Symbol::DIV) {
-		if (!factorOver1) {
-			iS->interType = InterType::INTER;
-			iS->set_tmp_name();
-			toPrint += iS->name + " = " + firstFact->name;
-			factorOver1 = true;
-		}
-		if (++cnt > 2) {
-			toPrint += '\n' + iS->name + " = " + iS->name;
-			cnt = 1;
-		}
-		toPrint += (symbol == Symbol::MULT ? " * " : " / ");
-		getsym();
-		toPrint += factor()->name;
+        if (!factorOver1) {
+            iS->interType = InterType::INTER;
+            iS->set_tmp_name();
+            if (firstFact->interType == InterType::SYMC) {
+                toPrint += iS->name + " = _" + firstFact->name;
+            } else {
+                toPrint += iS->name + " = " + firstFact->name;
+            }
+            factorOver1 = true;
+        }
+        if (++cnt > 2) {
+            toPrint += '\n' + iS->name + " = " + iS->name;
+            cnt = 1;
+        }
+        toPrint += (symbol == Symbol::MULT ? " * " : " / ");
+        getsym();
+        InterSym *fact = factor();
+        if (fact->interType == InterType::SYMC) {
+            toPrint += "_" + fact->name;
+        } else {
+            toPrint += fact->name;
+        }
     }
     sym_retract();
     sym_output();
-	if (!factorOver1) {
-		find_syn_part("<项>");
-		getsym();
-		return firstFact;
-	}
-	genInter.prt(toPrint + "\n");
+    if (!factorOver1) {
+        find_syn_part("<项>");
+        getsym();
+        return firstFact;
+    }
+    genInter.prt(toPrint + "\n");
     find_syn_part("<项>");
     getsym();
-	return iS;
+    return iS;
 }
 
-InterSym * expression() {
-	string toPrint = "";
+InterSym *expression() {
+    string toPrint;
     BaseType ret = BaseType::INT;
     bool sureInt = false;
-	InterSym* iSym = new InterSym();
-	iSym->interType = InterType::INTER;
-	iSym->set_tmp_name();
-	toPrint += iSym->name + " = ";
+    InterSym *iSym = new InterSym();
     if (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
-		toPrint += (symbol == Symbol::PLUS ? "+" : "-");
+        toPrint += (symbol == Symbol::PLUS ? "+" : "-");
         getsym();
         sureInt = true;
     } else if (symbol == Symbol::LPARENT) {
@@ -373,26 +387,37 @@ InterSym * expression() {
         if (symTable.contain(token, curLevel, true)) {
             SymbolC *symc = symTable.find(token, curLevel, true);
             if (((*symc).is_ret_func() || !(*symc).func)
-					&& (*symc).spec.baseType == BaseType::CHAR) {
+                && (*symc).spec.baseType == BaseType::CHAR) {
                 ret = BaseType::CHAR;
             }
         }
     }
-	toPrint += item()->name;	// 项
-	int itemCnt = 1;
+	auto tmp = item();
+	if (tmp->singleChar) {
+		iSym = tmp;
+	} else {
+		iSym->interType = InterType::INTER;
+		iSym->set_tmp_name();
+		toPrint += iSym->name + " = ";
+		toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;    // 项
+	}
+    int itemCnt = 1;
     while (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
-		if (++itemCnt > 2) {
-			toPrint += '\n';
-			toPrint += iSym->name + " = " + iSym->name;
-			itemCnt = 1;
-		}
+        if (++itemCnt > 2) {
+            toPrint += '\n';
+            toPrint += iSym->name + " = " + iSym->name;
+            itemCnt = 1;
+        }
         ret = BaseType::INT;
-		toPrint += (symbol == Symbol::PLUS ? " + " : " - ");
+        toPrint += (symbol == Symbol::PLUS ? " + " : " - ");
         getsym();
-		toPrint += item()->name;	// 项
+        auto tmp = item();
+        toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;
     }
     sym_retract();
-	genInter.prt(toPrint + "\n");
+	if (!tmp->singleChar) {
+		genInter.prt(toPrint + "\n");
+	}
     sym_output();
     find_syn_part("<表达式>");
     getsym();
@@ -400,140 +425,138 @@ InterSym * expression() {
     return iSym;
 }
 
-vector<InterSym*> val_para_list(SymbolC *func) {
-	vector<InterSym*> vec;
+vector<InterSym *> val_para_list(SymbolC *func) {
+    vector<InterSym *> vec;
     int paraCnt = 0;
     if (symbol != Symbol::RPARENT) {
         paraCnt++;
-		InterSym* exp = expression();
-		vec.push_back(exp);
-        if (paraCnt > (*func).args.size()) {
-			;
+        InterSym *exp = expression();
+        vec.push_back(exp);
+        if (paraCnt > (*func).args.size()) { ;
         } else if (exp->baseType != (*(*func).args.at(paraCnt - 1)).spec.baseType) {
             sym_retract();
-            globalErr.catch_e(line, "e");
+            globalErr.catch_e(curLineNum, "e");
             getsym();
         }
         while (symbol == Symbol::COMMA) {
             getsym();
             paraCnt++;
-			InterSym* exp = expression();
-			vec.push_back(exp);
-            if (paraCnt > (*func).args.size()) {
-				;
+            InterSym *exp = expression();
+            vec.push_back(exp);
+            if (paraCnt > (*func).args.size()) { ;
             } else if (exp->baseType != (*(*func).args.at(paraCnt - 1)).spec.baseType) {
                 sym_retract();
-                globalErr.catch_e(line, "e");
+                globalErr.catch_e(curLineNum, "e");
                 getsym();
             }
         }
     }
     if (paraCnt != (*func).args.size()) {
-        globalErr.catch_e(line, "d");
+        globalErr.catch_e(curLineNum, "d");
     }
     sym_retract();
     sym_output();
     find_syn_part("<值参数表>");
     getsym();
-	return vec;
+    return vec;
 }
 
-InterSym* r_f_stat(bool reportIdenNotFindError) {
-	InterSym* iS = new InterSym;
-	iS->interType = InterType::INTER;
-	iS->name = "RET";
-	string toPrint = "";
+InterSym *r_f_stat(bool reportIdenNotFindError) {
+    auto *iS = new InterSym;
+    iS->interType = InterType::INTER;
+    iS->name = "RET";
+    string toPrint;
     assert_symbol_is(Symbol::IDENFR);
     SymbolC *fun = new SymbolC();
     if (symTable.contain(token, curLevel, true)) {
         fun = symTable.find(token, curLevel, true);
     } else if (reportIdenNotFindError) {
-        globalErr.catch_e(line, "c");
+        globalErr.catch_e(curLineNum, "c");
     }
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     vector<InterSym *> paras_list = val_para_list(fun);
-	for (int i = 0; i < paras_list.size(); i++) {
-		toPrint += "push " + paras_list.at(i)->name + '\n';
-	}
-	toPrint += "call " + fun->name + '\n';
+    for (int i = 0; i < paras_list.size(); i++) {
+        toPrint += "push " + paras_list.at(i)->name + '\n';
+    }
+    toPrint += "call _" + fun->name + '\n';
     assert_symbol_is(Symbol::RPARENT);
-	genInter.prt(toPrint);
+    genInter.prt(toPrint);
     sym_output();
     find_syn_part("<有返回值函数调用语句>");
     getsym();
-	return iS;
+    return iS;
 }
 
 void n_r_f_stat() {
-	string toPrint = "";
+    string toPrint = "";
     assert_symbol_is(Symbol::IDENFR);
     SymbolC *fun = new SymbolC();
     if (symTable.contain(token, curLevel, true)) {
         fun = symTable.find(token, curLevel, true);
     } else {
-        globalErr.catch_e(line, "c");
+        globalErr.catch_e(curLineNum, "c");
     }
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
-	vector<InterSym*> paras_list = val_para_list(fun);
-	for (int i = 0; i < paras_list.size(); i++) {
-		toPrint += "push " + paras_list.at(i)->name + '\n';
-	}
-	toPrint += "call " + fun->name + '\n';
+    vector<InterSym *> paras_list = val_para_list(fun);
+    for (int i = 0; i < paras_list.size(); i++) {
+        toPrint += "push " + paras_list.at(i)->name + '\n';
+    }
+    toPrint += "call _" + fun->name + '\n';
     assert_symbol_is(Symbol::RPARENT);
     sym_output();
-	genInter.prt(toPrint);
+    genInter.prt(toPrint);
     find_syn_part("<无返回值函数调用语句>");
     getsym();
 }
 
 void condition() {
-	string toPrint = "";
-	auto exp = expression();
+    string toPrint = "";
+    auto exp = expression();
     if (exp->baseType != BaseType::INT) {
-        globalErr.catch_e(line, "f");
+        globalErr.catch_e(curLineNum, "f");
     }
-	toPrint += exp->name;
+    toPrint += exp->name;
     if (bool_relat_op()) {
-		toPrint += " " + token + " ";
+        toPrint += " " + token + " ";
         getsym();
-		auto exp = expression();
+        auto exp = expression();
         if (exp->baseType != BaseType::INT) {
-            globalErr.catch_e(line, "f");
+            globalErr.catch_e(curLineNum, "f");
         }
-		toPrint += exp->name;
+        toPrint += exp->name;
     }
     sym_retract();
     sym_output();
-	genInter.prt(toPrint + "\n");
+    genInter.prt(toPrint + "\n");
     find_syn_part("<条件>");
     getsym();
 }
 
 void if_stat(bool returned) {
-	string lb1 = genInter.gen_label();
+    string lb1 = genInter.gen_label();
     assert_symbol_is(Symbol::IFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     condition();
     assert_symbol_is(Symbol::RPARENT);
-	genInter.prt("BZ " + lb1 + '\n');
+    genInter.prt("BZ " + lb1 + '\n');
     getsym();
     statement(returned);
     if (symbol == Symbol::ELSETK) {
-		string lb2 = genInter.gen_label();
-		genInter.prt("GOTO " + lb2 + '\n');
-		genInter.prt(lb1 + " :\n");
+        string lb2 = genInter.gen_label();
+        genInter.prt("GOTO " + lb2 + '\n');
+        genInter.prt(lb1 + " :\n");
         getsym();
         statement(returned);
-		genInter.prt(lb2 + " :\n");
-	} else {
-		genInter.prt(lb1 + " :\n");
-	}
+        genInter.prt(lb2 + " :\n");
+    } else {
+        genInter.prt(lb1 + " :\n");
+    }
     sym_retract();
     sym_output();
     find_syn_part("<条件语句>");
@@ -542,41 +565,41 @@ void if_stat(bool returned) {
 
 int step_len() {
     is_unsigned_int();
-	int ret = number;
+    int ret = number;
     find_syn_part("<步长>");
     getsym();
-	return ret;
+    return ret;
 }
 
 void loop_stat(bool returned) {
-	string toPrint = "";
-	string lb1 = genInter.gen_label(), lb2;
-	string idfr, idfr2, op;
-	int stepLen;
+    string toPrint = "";
+    string lb1 = genInter.gen_label(), lb2;
+    string idfr, idfr2, op;
+    int stepLen;
     switch (symbol) {
         case Symbol::WHILETK:
             getsym();
             assert_symbol_is(Symbol::LPARENT);
             getsym();
-			toPrint += (lb1 + " :\n");
-			genInter.prt(toPrint);
-			toPrint = "";
+            toPrint += (lb1 + " :\n");
+            genInter.prt(toPrint);
+            toPrint = "";
             condition();
-			lb2 = genInter.gen_label();
-			toPrint += ("BZ " + lb2 + '\n');
+            lb2 = genInter.gen_label();
+            toPrint += ("BZ " + lb2 + '\n');
             assert_symbol_is(Symbol::RPARENT);
             getsym();
-			genInter.prt(toPrint);
-			toPrint = "";
+            genInter.prt(toPrint);
+            toPrint = "";
             statement(returned);
-			toPrint += ("GOTO " + lb1 + "\n");
-			toPrint += (lb2 + " :\n");
+            toPrint += ("GOTO " + lb1 + "\n");
+            toPrint += (lb2 + " :\n");
             break;
         case Symbol::DOTK:
             getsym();
-			toPrint += (lb1 + " :\n");
-			genInter.prt(toPrint);
-			toPrint = "";
+            toPrint += (lb1 + " :\n");
+            genInter.prt(toPrint);
+            toPrint = "";
             statement(returned);
             assert_symbol_is(Symbol::WHILETK);
             getsym();
@@ -584,7 +607,7 @@ void loop_stat(bool returned) {
             getsym();
             condition();
             assert_symbol_is(Symbol::RPARENT);
-			toPrint += ("BNZ " + lb1 + '\n');
+            toPrint += ("BNZ " + lb1 + '\n');
             getsym();
             break;
         case Symbol::FORTK:
@@ -592,154 +615,160 @@ void loop_stat(bool returned) {
             assert_symbol_is(Symbol::LPARENT);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
-			toPrint += (token + " = ");
+            toPrint += ("_" + token + " = ");
             getsym();
             assert_symbol_is(Symbol::ASSIGN);
             getsym();
-			toPrint += (expression()->name + "\n");
+            toPrint += (expression()->name + "\n");
             assert_symbol_is(Symbol::SEMICN);
-			toPrint += (lb1 + " :\n");
+            toPrint += (lb1 + " :\n");
             getsym();
-			genInter.prt(toPrint);
-			toPrint = "";
+            genInter.prt(toPrint);
+            toPrint = "";
             condition();
-			lb2 = genInter.gen_label();
-			toPrint += ("BZ " + lb2 + "\n");
+            lb2 = genInter.gen_label();
+            toPrint += ("BZ " + lb2 + "\n");
             assert_symbol_is(Symbol::SEMICN);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
-			idfr = token;
+            idfr = token;
             getsym();
             assert_symbol_is(Symbol::ASSIGN);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
-			idfr2 = token;
+            idfr2 = token;
             getsym();
             if (symbol != Symbol::PLUS && symbol != Symbol::MINU) error();
-			op = token;
+            op = token;
             getsym();
             stepLen = step_len();
             assert_symbol_is(Symbol::RPARENT);
             getsym();
-			genInter.prt(toPrint);
-			toPrint = "";
+            genInter.prt(toPrint);
+            toPrint = "";
             statement(returned);
-			toPrint += (idfr + " = " + idfr2 + " " + op + " " + to_string(stepLen) + "\n");
-			toPrint += ("GOTO " + lb1 + '\n');
-			toPrint += (lb2 + " :\n");
+            toPrint += ("_" + idfr + " = _" + idfr2 + " " + op + " " + to_string(stepLen) + "\n");
+            toPrint += ("GOTO " + lb1 + '\n');
+            toPrint += (lb2 + " :\n");
             break;
         default:
             break;
     }
     sym_retract();
-	genInter.prt(toPrint);
+    genInter.prt(toPrint);
     sym_output();
     find_syn_part("<循环语句>");
     getsym();
 }
 
 void val_stat() {
-	string toPrint = "";
+    string toPrint = "";
     assert_symbol_is(Symbol::IDENFR);
-	toPrint += token;
+    toPrint += "_" + token;
     if (!symTable.contain(token, curLevel, true)) {
-        globalErr.catch_e(line, "c");
+        globalErr.catch_e(curLineNum, "c");
     } else if (symTable.find(token, curLevel, true)->spec.isConst) {
-        globalErr.catch_e(line, "j");
+        globalErr.catch_e(curLineNum, "j");
     }
     getsym();
-    if (symbol == Symbol::LBRACK) {	// array
+    if (symbol == Symbol::LBRACK) {    // array
         getsym();
-		InterSym* exp = expression();
+        InterSym *exp = expression();
         if (exp->baseType != BaseType::INT) {
-            globalErr.catch_e(line, "i");
+            globalErr.catch_e(curLineNum, "i");
         }
-		toPrint += "[" + exp->name + "]";
+        toPrint += "[" + exp->name + "]";
         assert_symbol_is(Symbol::RBRACK);
         getsym();
     }
     assert_symbol_is(Symbol::ASSIGN);
     getsym();
-	toPrint += " = " + expression()->name + "\n";
+    toPrint += " = " + expression()->name + "\n";
     sym_retract();
-	genInter.prt(toPrint);
+    genInter.prt(toPrint);
     sym_output();
     find_syn_part("<赋值语句>");
     getsym();
 }
 
 void scan_stat() {
-	string toPrint = "";
+    string toPrint = "";
     assert_symbol_is(Symbol::SCANFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     assert_symbol_is(Symbol::IDENFR);
-	toPrint += "push " + token + "\n";
+    toPrint += "push _" + token + "\n";
     if (!symTable.contain(token, curLevel, true)) {
-        globalErr.catch_e(line, "c");
+        globalErr.catch_e(curLineNum, "c");
     }
     getsym();
     while (symbol == Symbol::COMMA) {
         getsym();
         assert_symbol_is(Symbol::IDENFR);
         if (!symTable.contain(token, curLevel, true)) {
-            globalErr.catch_e(line, "c");
+            globalErr.catch_e(curLineNum, "c");
         }
-		toPrint += "push " + token + "\n";
+        toPrint += "push _" + token + "\n";
         getsym();
     }
     assert_symbol_is(Symbol::RPARENT);
     sym_output();
-	genInter.prt(toPrint + "SCAN\n");
+    genInter.prt(toPrint + "SCAN\n");
     find_syn_part("<读语句>");
     getsym();
 }
 
 void prt_stat() {
-	string toPrint = "";
+    string toPrint = "";
     assert_symbol_is(Symbol::PRINTFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     if (symbol == Symbol::STRCON) {
         sym_output();
+		static int strCnt = 0;
+		string strName = "$str" + to_string(strCnt++);
+		SymbolC* strSym = new SymbolC(strName, curLevel, curLineNum, *new Specifier(true, BaseType::STRING));
+		strSym->strVal = token;
+		symTable.add(*strSym, get_out_level());
         find_syn_part("<字符串>");
-		toPrint += "push \"" + token + "\"\n";
+        //toPrint += "push \"" + token + "\"\n";
+        toPrint += "push " + strName + "\n";
         getsym();
         if (symbol == Symbol::COMMA) {
             getsym();
-            expression();
+			toPrint += "push " + expression()->name + "\n";
         }
     } else {
-		toPrint += "push " + expression()->name + "\n";
+        toPrint += "push " + expression()->name + "\n";
     }
     assert_symbol_is(Symbol::RPARENT);
     sym_output();
-	genInter.prt(toPrint + "PRINT\n");
+    genInter.prt(toPrint + "PRINT\n");
     find_syn_part("<写语句>");
     getsym();
 }
 
 bool ret_stat(bool returned) {
-	string toPrint = "";
+    string toPrint = "";
     bool forReturnFStat = false;
-	assert_symbol_is(Symbol::RETURNTK);
-	toPrint += "ret";
+    assert_symbol_is(Symbol::RETURNTK);
+    toPrint += "ret";
     getsym();
     if (symbol == Symbol::LPARENT) {
         forReturnFStat = true;
         getsym();
-		InterSym* exp = expression();
+        InterSym *exp = expression();
         if (exp->baseType != returnStatType && returned) {
-            globalErr.catch_e(line, "h");
+            globalErr.catch_e(curLineNum, "h");
         }
-		toPrint += " " + exp->name;
+        toPrint += " " + exp->name;
         assert_symbol_is(Symbol::RPARENT);
         getsym();
     }
     sym_retract();
-	genInter.prt(toPrint + "\n");
+    genInter.prt(toPrint + "\n");
     sym_output();
     find_syn_part("<返回语句>");
     getsym();
@@ -760,16 +789,16 @@ bool statement(bool returned) {
             case Symbol::DOTK:
                 loop_stat(returned);
                 break;
-            case Symbol::LBRACE:    // '{'
+            case Symbol::LBRACE:    // '{' for, if ... a new area
                 getsym();
-                gen_new_level();
+                //gen_new_level();
                 stat_list(returned);
                 assert_symbol_is(Symbol::RBRACE);
-                level_retract();
+                //level_retract();
                 getsym();
                 break;
             case Symbol::IDENFR:
-                isret = (*symTable.find(token, 0, true)).is_ret_func();
+                isret = (*symTable.find(token, curLevel, true)).is_ret_func();
                 getsym();
                 if (symbol == Symbol::LPARENT) {
                     sym_retract();
@@ -803,10 +832,10 @@ bool statement(bool returned) {
                 haveRetStat = true;
                 forReturnFStat = ret_stat(returned);
                 if (!returned && forReturnFStat) {
-                    globalErr.catch_e(line, "g");
+                    globalErr.catch_e(curLineNum, "g");
                 }
                 if (returned && !forReturnFStat) {
-                    globalErr.catch_e(line, "h");
+                    globalErr.catch_e(curLineNum, "h");
                 }
                 assert_symbol_is(Symbol::SEMICN);
                 getsym();
@@ -859,7 +888,7 @@ SymbolC *def_head() {
     sbtype2bstype(symbol, &spc);
     getsym();
     assert_symbol_is(Symbol::IDENFR);
-    SymbolC syc(token, curLevel, line, spc);
+    SymbolC syc(token, curLevel, curLineNum, spc);
     sym_output();
     find_syn_part("<声明头部>");
     SymbolC *ret = symTable.add(syc, get_out_level());
@@ -875,7 +904,7 @@ void param_list(SymbolC *sbc) {
         sbtype2bstype(symbol, &spc);
         getsym();
         assert_symbol_is(Symbol::IDENFR);
-        SymbolC *arg = new SymbolC(token, curLevel, line, spc);
+        SymbolC *arg = new SymbolC(token, curLevel, curLineNum, spc);
         args.push_back(arg);
         symTable.add(*arg, curLevel);
         getsym();
@@ -886,7 +915,7 @@ void param_list(SymbolC *sbc) {
             sbtype2bstype(symbol, &spc);
             getsym();
             assert_symbol_is(Symbol::IDENFR);
-            SymbolC *arg = new SymbolC(token, curLevel, line, spc);
+            SymbolC *arg = new SymbolC(token, curLevel, curLineNum, spc);
             args.push_back(arg);
             symTable.add(*arg, curLevel);
             getsym();
@@ -908,15 +937,15 @@ void returned_func_def() {
     getsym();
     param_list(sbc);
     assert_symbol_is(Symbol::RPARENT);
-	if (!sbc->duplicate) {
-		genInter.find_func_def(*sbc);	// write func head to inter file
-	}
+    if (!sbc->duplicate) {
+        genInter.find_func_def(*sbc);    // write func head to inter file
+    }
     getsym();
     assert_symbol_is(Symbol::LBRACE);    // '{'
     getsym();
     returnStatType = (*sbc).spec.baseType;
     if (!comp_stat(true)) {
-        globalErr.catch_e(line, "h");
+        globalErr.catch_e(curLineNum, "h");
     }
     assert_symbol_is(Symbol::RBRACE);
     sym_output();
@@ -931,7 +960,7 @@ void un_returned_func_def() {
     spc.baseType = BaseType::VOID;
     getsym();
     assert_symbol_is(Symbol::IDENFR);
-    SymbolC sbc(token, curLevel, line, spc);
+    SymbolC sbc(token, curLevel, curLineNum, spc);
     sbc.func = true;
     gen_new_level();
     getsym();
@@ -940,9 +969,9 @@ void un_returned_func_def() {
     getsym();
     param_list(&sbc);
     assert_symbol_is(Symbol::RPARENT);
-	if (!symTable.add(sbc, get_out_level())->duplicate) {
-		genInter.find_func_def(sbc);
-	}
+    if (!symTable.add(sbc, get_out_level())->duplicate) {
+        genInter.find_func_def(sbc);
+    }
     getsym();
     assert_symbol_is(Symbol::LBRACE);    // '{'
     getsym();
@@ -956,20 +985,20 @@ void un_returned_func_def() {
 
 void main_f() {
     assert_symbol_is(Symbol::VOIDTK);
-	Specifier spc;
-	spc.baseType = BaseType::VOID;
+    Specifier spc;
+    spc.baseType = BaseType::VOID;
     getsym();
     assert_symbol_is(Symbol::MAINTK);
-	SymbolC sbc(token, curLevel, line, spc);
-	sbc.func = true;
+    SymbolC sbc(token, curLevel, curLineNum, spc);
+    sbc.func = true;
     gen_new_level();
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
     assert_symbol_is(Symbol::RPARENT);
-	if (!symTable.add(sbc, get_out_level())->duplicate) {
-		genInter.find_func_def(sbc);
-	}
+    if (!symTable.add(sbc, get_out_level())->duplicate) {
+        genInter.find_func_def(sbc);
+    }
     getsym();
     assert_symbol_is(Symbol::LBRACE);    // '{'
     getsym();
@@ -1012,5 +1041,6 @@ void program() {
     } else {
         error();
     }
+	genInter.prt("#EOF :");
     find_syn_part("<程序>");
 }

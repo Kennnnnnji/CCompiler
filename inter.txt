@@ -1,0 +1,10 @@
+var int _test
+void _main()
+push $str0
+PRINT
+push _test
+SCAN
+@tmp0 = _test
+push @tmp0
+PRINT
+#EOF :
