@@ -394,13 +394,12 @@ InterSym *expression() {
     }
 	auto tmp = item();
 	if (tmp->singleChar) {
-		iSym = tmp;
-	} else {
-		iSym->interType = InterType::INTER;
-		iSym->set_tmp_name();
-		toPrint += iSym->name + " = ";
-		toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;    // 项
+		iSym->singleChar = true;
 	}
+	iSym->interType = InterType::INTER;
+	iSym->set_tmp_name();
+	toPrint += iSym->name + " = ";
+	toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;    // 项
     int itemCnt = 1;
     while (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
         if (++itemCnt > 2) {
@@ -415,9 +414,7 @@ InterSym *expression() {
         toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;
     }
     sym_retract();
-	if (!tmp->singleChar) {
-		genInter.prt(toPrint + "\n");
-	}
+	genInter.prt(toPrint + "\n");
     sym_output();
     find_syn_part("<表达式>");
     getsym();

@@ -1,27 +1,10 @@
 .data
-$str0:	.asciiz	"Hello World"
+$str0:	.asciiz	"a is : "
+$str1:	.asciiz	"Congratulations"
 .text
 addi	$fp	$sp	4
 Main :
-la	$a0	$str0
-li	$v0	4
-syscall
-sw	$a0	0($sp)
-subi	$sp	$sp	4
-addi	$a0	$zero	10
-li	$v0	11
-syscall
-addi	$sp	$sp	4
-lw	$a0	0($sp)
-sw	$v0	0($sp)
-subi	$sp	$sp	4
-li	$v0	5
-syscall
-move	$t0	$v0
-addi	$sp	$sp	4
-lw	$v0	0($sp)
-sw	$t0	0($gp)
-lw	$t0	0($gp)
+li	$t0	-6
 sw	$t0	0($fp)
 lw	$t0	0($fp)
 sw	$a0	0($sp)
@@ -31,6 +14,41 @@ li	$v0	1
 syscall
 addi	$sp	$sp	4
 lw	$a0	0($sp)
+sw	$a0	0($sp)
+subi	$sp	$sp	4
+addi	$a0	$zero	10
+li	$v0	11
+syscall
+addi	$sp	$sp	4
+lw	$a0	0($sp)
+li	$t0	-6
+addiu	$t0	$t0	2
+sw	$t0	4($fp)
+lw	$t0	4($fp)
+sw	$t0	8($fp)
+lw	$t0	8($fp)
+sw	$t0	12($fp)
+la	$a0	$str0
+li	$v0	4
+syscall
+lw	$t0	12($fp)
+sw	$a0	0($sp)
+subi	$sp	$sp	4
+add	$a0	$zero	$t0
+li	$v0	1
+syscall
+addi	$sp	$sp	4
+lw	$a0	0($sp)
+sw	$a0	0($sp)
+subi	$sp	$sp	4
+addi	$a0	$zero	10
+li	$v0	11
+syscall
+addi	$sp	$sp	4
+lw	$a0	0($sp)
+la	$a0	$str1
+li	$v0	4
+syscall
 sw	$a0	0($sp)
 subi	$sp	$sp	4
 addi	$a0	$zero	10

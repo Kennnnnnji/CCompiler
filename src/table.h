@@ -43,6 +43,7 @@ public:
 	bool func = false;
 	bool param = false;
 	bool arr = false;
+	bool isMapped = false;
 	string strVal;
 
 	Specifier spec;

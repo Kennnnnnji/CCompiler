@@ -32,7 +32,8 @@ int main() {
 	infile.close();
 	src = (char*)file_str.data();
 	fileSize = file_str.length();
-	
+	//cerr << src << endl;
+	//exit(-100);
 	if (!outfile) {
 		cout << "Error opening file";
 		exit(2);

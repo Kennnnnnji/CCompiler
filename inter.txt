@@ -1,10 +1,15 @@
-var int _test
+const int _testfg = -6
 void _main()
-push $str0
-PRINT
-push _test
-SCAN
-@tmp0 = _test
+var int _a
+@tmp0 = _testfg
 push @tmp0
+PRINT
+@tmp1 = _testfg + 2
+_a = @tmp1
+@tmp2 = _a
+push $str0
+push @tmp2
+PRINT
+push $str1
 PRINT
 #EOF :

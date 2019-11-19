@@ -123,7 +123,7 @@ static void div(bool useImmed, SymbolC* left, int immed, Register* rightReg) {
 		rightReg = regPool.apply(RegType::T);
 		genMips.prt("li\t$t" + to_string(rightReg->id) + "\t" + to_string(immed) + "\n");
 	}
-	genMips.prt("divu\t$t" + to_string(regPool.findReg(left)->id) + "\t$t" + to_string(rightReg->id) + "\n");
+	genMips.prt("div\t$t" + to_string(regPool.findReg(left)->id) + "\t$t" + to_string(rightReg->id) + "\n");
 	genMips.prt("mflo\t$t" + to_string(regPool.findReg(left)->id) + "\n");
 }
 
@@ -178,19 +178,19 @@ static void val_stat() {
 		rightReg = regPool.apply(RegType::T);
 		switch (InterLex::reserve(line.at(4))) {
 			case InterSymbol::INTCON:
-				immed = stoi(line[2]);
+				immed = stoi(line[4]);
 				if (0 <= immed && immed <= 0xffff) {
 					useImmed = true;
 				} else {
-					genMips.prt("li\t$t" + to_string(rightReg->id) + "\t" + line[2] + "\n");
+					genMips.prt("li\t$t" + to_string(rightReg->id) + "\t" + line[4] + "\n");
 				}
 				break;
 			case InterSymbol::CHARCON:
-				immed = stoi(line[2]);
+				immed = (int)line[4][1];
 				if (0 <= immed && immed <= 0xffff) {
 					useImmed = true;
 				} else {
-					genMips.prt("ori\t$t" + to_string(rightReg->id) + "\t" + to_string((int)line.at(2).at(1)) + "\n");
+					genMips.prt("ori\t$t" + to_string(rightReg->id) + "\t" + to_string((int)line.at(4).at(1)) + "\n");
 				}
 				break;
 			case InterSymbol::IDENFR:
@@ -202,7 +202,7 @@ static void val_stat() {
 					if (index != -1) {	// a intcon
 						genMips.prt("lw\t$t" + to_string(rightReg->id) + "\t" + to_string(right->addr + index * 4) + (right->level < level ? "($gp)" : "($fp)") + "\n");
 					} else {
-						Register* add = get_arr_addr(line.at(2));
+						Register* add = get_arr_addr(line.at(4));
 						genMips.prt("addu\t$t" + to_string(add->id) + "\t$t" + to_string(add->id) + "\t" + (right->level < level ? "$gp" : "$fp") + "\n");
 						genMips.prt("lw\t$t" + to_string(rightReg->id) + "\t" + to_string(right->addr) + "($t" + to_string(add->id) + ")\n");
 						regPool.release(add);
@@ -236,6 +236,7 @@ static void val_stat() {
 				::mult(useImmed, left, immed, rightReg);
 				break;
 			case InterSymbol::DIV:
+				::div(useImmed, left, immed, rightReg);
 				break;
 			default:
 				break;
@@ -265,7 +266,7 @@ static void scan_stat(vector<SymbolC*> vec) {
 		} else {
 			genMips.read_int(tmp->name);
 		}
-		genMips.prt("sw\t" + tmp->name + "\t" + to_string(i->addr) + (i->level < level ? "($gp)" : ("$fp")) + "\n");
+		genMips.prt("sw\t" + tmp->name + "\t" + to_string(i->addr) + (i->level < level ? "($gp)" : "($fp)") + "\n");
 	}
 	regPool.release(tmp);
 }
@@ -346,10 +347,17 @@ static void mapLocalVar() {
 			break;
 		}
 		if (InterLex::reserve(line.at(0)) == InterSymbol::IDENFR) {
-			if (symTable.contain(line.at(0).substr(1), level, false)) {
-				SymbolC* sym = symTable.find(line.at(0).substr(1), level, false);
-				sym->addr = offset;
-				offset += sym->size;
+			string idfName = line.at(0).substr(1);
+			if (is_arr(line.at(0)) == true) {
+				idfName = line.at(0).substr(1, line.at(0).find('[') - 1);
+			}
+			if (symTable.contain(idfName, level, false)) {
+				SymbolC* sym = symTable.find(idfName, level, false);
+				if (!sym->isMapped) {
+					sym->addr = offset;
+					offset += sym->size;
+					sym->isMapped = true;
+				}
 			}
 		} else if (InterLex::reserve(line.at(0)) == InterSymbol::INTERVAR) {
 			if (!symTable.contain(line.at(0), level, false)) {
@@ -366,7 +374,23 @@ static void mapLocalVar() {
 				auto* sym = new SymbolC(line.at(0), level, 0, spc);
 				sym->addr = offset;
 				offset += sym->size;
+				sym->isMapped = true;
 				symTable.add(*sym, lvlMng.levelVec.at(level).outid);
+			}
+		} else if (InterLex::reserve(line.at(0)) == InterSymbol::PUSHTK) {
+			if (InterLex::reserve(line.at(1)) == InterSymbol::IDENFR) {
+				string idfName = line.at(1).substr(1);
+				if (is_arr(line.at(1)) == true) {
+					idfName = line.at(1).substr(1, line.at(1).find('[') - 1);
+				}
+				if (symTable.contain(idfName, level, false)) {
+					SymbolC* sym = symTable.find(idfName, level, false);
+					if (!sym->isMapped) {
+						sym->addr = offset;
+						offset += sym->size;
+						sym->isMapped = true;
+					}
+				}
 			}
 		}
 		line = interLex->getLine();

@@ -1,6 +1,10 @@
-int test;
-void main(){
-    printf("Hello World");
-    scanf(test);
-    printf(test);
+const int testfg = -6;
+
+void main() {
+	int a;
+	printf(testfg);
+	a = testfg + 2;
+	printf("a is : ", a);
+
+	printf("Congratulations");
 }

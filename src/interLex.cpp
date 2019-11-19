@@ -91,8 +91,10 @@ InterSymbol InterLex::reserve(const string& token) {
         return InterSymbol::VARTK;
 	} else if (token == "void") {
 		return InterSymbol::VOIDTK;
+	} else if (token[0] == '$') {
+		return InterSymbol::STRVAR;
 	}
-    cerr << "InterLex.cpp: UNKNOWN TOKEN IN INTER.TXT" << endl;
+    cerr << "InterLex.cpp: UNKNOWN TOKEN IN INTER.TXT:" + token << endl;
     exit(-6);
 }
 
