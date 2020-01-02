@@ -1,7 +1,12 @@
 #include "GenInter.h"
 
 GenInter::GenInter() {
-	interfile.open("inter.txt", ios::in|ios::out|ios::trunc);
+    locale::global(locale(""));
+	interfile.open("17373052_王俊雄_优化前中间代码.txt", ios::out|ios::trunc);
+	if (!interfile.is_open()) {
+		cout << "GenInter.cpp: Error opening 17373052_王俊雄_优化前中间代码.txt";
+		exit(1);
+	}
 }
 
 void GenInter::prt(string s) {
@@ -33,6 +38,23 @@ void GenInter::find_normal_var_def(SymbolC constVar) {
 string GenInter::gen_label() {
 	static int cnt = 0;
 	string label = "#Label_" + to_string(cnt++);
-	//interfile << label + " :" << endl;
 	return label;
+}
+
+string GenInter::gen_label_loop_start() {
+	string label = "#LOOP_STT_" + to_string(++loopcnt);
+	return label;
+}
+
+string GenInter::gen_label_loop_end() {
+	string label = "#LOOP_END_" + to_string(loopcnt);
+	return label;
+}
+
+string GenInter::gen_func_label(string fname) {
+	return "#Func_" + fname;
+}
+
+string GenInter::gen_func_end(string fname) {
+	return "#End_" + fname;
 }

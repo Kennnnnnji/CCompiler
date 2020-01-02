@@ -1,0 +1,37 @@
+char retc(int a) {
+	return (a);
+}
+
+int c2i(char c) {
+	return ((c));
+}
+
+void main()
+{
+	int n;
+	char c;
+	
+	printf("Hello World!\n");
+	printf('c');
+	printf('6');
+	printf(c2i('6'));
+	printf(6);
+	n = 49;
+	c = 'c';
+	printf(retc(n));
+	printf(retc(n) + 1);
+	printf(c);
+
+	
+	printf((c));
+	printf(c2i(c));
+	printf(c + c);
+	printf(c + 'c');
+	printf('c' + 'c');
+	printf('c' + c);
+	printf(c + 1);
+
+	n = c;
+	printf(retc(n));
+	printf(n);
+}

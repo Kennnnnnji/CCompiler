@@ -1,0 +1,201 @@
+var int _change1
+#Func_f1 :
+int _f1()
+para int _var1
+para int _var2
+var int _i
+@tmp0 = 0
+_i = @tmp0
+#Label_0 :
+@tmp1 = _i + 1
+_i = @tmp1
+@tmp2 = _var2 + _var1
+_var1 = @tmp2
+@tmp3 = _i
+@tmp4 = _var2
+@tmp3 < @tmp4
+BNZ #Label_0
+@tmp5 = _var1
+_change1 = @tmp5
+@tmp8 = _var2 + 1
+@tmp8 = @tmp8 - 1
+@tmp7 = _change1 * _var2
+@tmp7 = @tmp7 / @tmp8
+@tmp6 = @tmp7
+ret @tmp6
+#End_f1 :
+#Func_f2 :
+int _f2()
+para int _var1
+para int _var2
+var int _i
+@tmp9 = 0
+_i = @tmp9
+#Label_1 :
+@tmp10 = _i
+@tmp11 = _var2
+@tmp10 < @tmp11
+BZ #Label_2
+@tmp12 = _var1 + _var2
+_var1 = @tmp12
+@tmp13 = 1 + _i
+_i = @tmp13
+GOTO #Label_1
+#Label_2 :
+@tmp14 = _var1 + _i
+@tmp14 = @tmp14 - _var2
+ret @tmp14
+#End_f2 :
+#Func_f3 :
+int _f3()
+para int _var1
+para int _var2
+var int _i
+var int _ret
+@tmp15 = 0
+_ret = @tmp15
+@tmp16 = 0
+_i = @tmp16
+#Label_3 :
+@tmp17 = _i
+@tmp18 = _var2
+@tmp17 < @tmp18
+BZ #Label_4
+@tmp19 = _ret + _var2
+_ret = @tmp19
+_i = _i + 1
+GOTO #Label_3
+#Label_4 :
+@tmp20 = _var1 + _ret
+ret @tmp20
+#End_f3 :
+#Func_f4 :
+int _f4()
+para int _var1
+para int _var2
+const int _ci = 1
+var int _a
+var int _b
+@tmp21 = 1
+_a = @tmp21
+@tmp22 = 1
+_a = @tmp22
+@tmp23 = 1
+_a = @tmp23
+@tmp24 = 1
+_a = @tmp24
+@tmp25 = 1
+_a = @tmp25
+@tmp26 = 1
+_a = @tmp26
+@tmp27 = 1
+_a = @tmp27
+@tmp28 = 1
+_a = @tmp28
+@tmp30 = _var2 * _var2
+@tmp29 = _var1 + @tmp30
+ret @tmp29
+#End_f4 :
+void _main()
+const int _const1 = -10
+var int _k
+@tmp31 = 666
+_k = @tmp31
+@tmp34 = _const1
+@tmp35 = _k
+push @tmp34
+push @tmp35
+call _f4
+@tmp33 = RET
+@tmp32 = @tmp33
+push $str0
+push @tmp32
+PRINT
+@tmp38 = _const1
+@tmp39 = _k
+push @tmp38
+push @tmp39
+call _f3
+@tmp37 = RET
+@tmp36 = @tmp37
+push $str1
+push @tmp36
+PRINT
+@tmp42 = _const1
+@tmp43 = _k
+push @tmp42
+push @tmp43
+call _f2
+@tmp41 = RET
+@tmp40 = @tmp41
+push $str2
+push @tmp40
+PRINT
+@tmp46 = _const1
+@tmp47 = _k
+push @tmp46
+push @tmp47
+call _f1
+@tmp45 = RET
+@tmp44 = @tmp45
+push $str3
+push @tmp44
+PRINT
+@tmp50 = _const1
+@tmp51 = _k
+push @tmp50
+push @tmp51
+call _f1
+@tmp49 = RET
+@tmp48 = @tmp49
+@tmp54 = _const1
+@tmp55 = _k
+push @tmp54
+push @tmp55
+call _f2
+@tmp53 = RET
+@tmp52 = @tmp53
+@tmp48 == @tmp52
+BZ #Label_5
+@tmp58 = _const1
+@tmp59 = _k
+push @tmp58
+push @tmp59
+call _f1
+@tmp57 = RET
+@tmp56 = @tmp57
+@tmp62 = _const1
+@tmp63 = _k
+push @tmp62
+push @tmp63
+call _f3
+@tmp61 = RET
+@tmp60 = @tmp61
+@tmp56 == @tmp60
+BZ #Label_6
+@tmp66 = _const1
+@tmp67 = _k
+push @tmp66
+push @tmp67
+call _f1
+@tmp65 = RET
+@tmp64 = @tmp65
+@tmp70 = _const1
+@tmp71 = _k
+push @tmp70
+push @tmp71
+call _f4
+@tmp69 = RET
+@tmp68 = @tmp69
+@tmp64 == @tmp68
+BZ #Label_7
+push $str4
+PRINT
+GOTO #Label_8
+#Label_7 :
+push $str5
+PRINT
+#Label_8 :
+#Label_6 :
+#Label_5 :
+#EOF :

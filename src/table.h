@@ -26,7 +26,7 @@ public:
 
 class SymbolC {
 private:
-	bool valid = false;	// if is deleted
+	bool valid = true;	// if is deleted
 
 public:
 	string name;
@@ -38,11 +38,19 @@ public:
 	int line;		// declared curLineNum count
 	vector<int> refVec;	// refered linesInter
 	int level;		// variable level
+	int inLevel;
 	int value;		// value of var
 	bool duplicate = false;	//是否是同名变量
 	bool func = false;
 	bool param = false;
 	bool arr = false;
+	
+	bool isPara = false;
+	bool isVar = false;
+	int paraId;
+	int varId = 9999;
+	int appear;
+
 	bool isMapped = false;
 	string strVal;
 
@@ -70,6 +78,7 @@ public:
 class LevelMng {
 public:
 	vector<Level> levelVec;
+	bool is_a_b_outer(int a, int b);	// include equal
 };
 
 class SymbolEntry {
@@ -96,5 +105,7 @@ public:
 	bool contain(string nam, int level, bool outer);
 	SymbolC* add(SymbolC s, int out_level);
 	void devalid(int level);
+	int lvl_var_cnt(int levelid, bool includeArrSize);
+	int lvl_var_cnt_except_para_arr(int levelid);
 };
 #endif

@@ -1,8 +1,6 @@
 #include "InterSym.h"
 
-InterSym::InterSym() {
-	static int tempVarCnt = 0;
-}
+InterSym::InterSym() {}
 
 void InterSym::set_inter_type(InterType it) {
 	interType = it;

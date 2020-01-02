@@ -11,8 +11,12 @@
 
 class GenMipsCode {
 private:
-    fstream mipsOut;
+
 public:
+	ofstream mipsOut;
+	int pushCnt;
+
+
     GenMipsCode();
     void prt(const string& s);
 	void read_int(string regName);
@@ -22,8 +26,11 @@ public:
 	void print_int(string regName);
 	void exit_prt();
 	void push(string x);
+
 	void pop(string regName);
 	void print_str(string x);
+	void jal(string target);
+	void prt_exit();
 };
 
 

@@ -12,5 +12,6 @@ void CError::prt_error(int line_num, const string& message) {
 }
 
 void CError::catch_e(int line_num, const string& errType) {
+	ERROR = true;
 	prt_error(line_num, errType);
 }

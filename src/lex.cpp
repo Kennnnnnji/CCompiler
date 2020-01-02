@@ -218,7 +218,7 @@ int getsym() {
 
 void sym_output() {
 	while (!outQue.empty()) {
-		outfile << (string)(outQue.front());
+		//outfile << (string)(outQue.front());
 		outQue.pop_front();
 	}
 }

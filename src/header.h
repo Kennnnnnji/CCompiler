@@ -11,6 +11,7 @@
 #include "RegPool.h"
 #include "InterLex.h"
 #include "GenMipsCode.h"
+#include "Opt.h"
 
 using namespace std;
 
@@ -33,7 +34,7 @@ extern int curLineNum, cur, fileSize;
 extern LevelMng lvlMng;
 extern string token;
 extern Symbol symbol;
-extern ofstream outfile;
+//extern ofstream outfile;
 extern SymTable symTable;
 extern CError globalErr;
 extern GenInter genInter;
@@ -41,7 +42,7 @@ extern GenMipsCode genMips;
 extern int number;
 extern char character;
 extern RegPool regPool;
-
+extern Opt opt;
 
 int next();
 int sub_lines();

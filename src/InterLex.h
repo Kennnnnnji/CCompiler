@@ -10,26 +10,33 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include "header.h"
 
 using namespace std;
 
 enum class InterSymbol {
     UNKNOWN = 0, IDENFR = 1, INTCON, CHARCON, STRCON, CONSTTK, INTTK, CHARTK,
     SCANTK, PRINTTK, RETTK, PLUS, INTERVAR, BZTK, BNZTK, GOTOTK, PUSHTK, CALLTK,
-    MINU, MULT, DIV, LESS, LEQ, GRT, GEQ, EQL, NEQ, ASSIGN, COLONTK, LABELTK, VARTK, VOIDTK, STRVAR
+    MINU, MULT, DIV, LESS, LEQ, GRT, GEQ, EQL, NEQ, ASSIGN, COLONTK, LABELTK, VARTK, VOIDTK, STRVAR,
+	PARATK, RETVALTK, MINUIDNF, MINUINTV
 };
 
 class InterLex {
 private:
     vector<string> lines;
     vector<vector<string>> lineWord;
-    int curWord = 0;
 public:
 	int curLine = 0;
-    explicit InterLex(fstream &file);
+	InterLex();
     bool hasNextLine();
-    vector<string> getLine();
-    static InterSymbol reserve(const string& token);
+	vector<string> getLine();
+    vector<string> preGetLine();
+    vector<string> preGetLine(int lineNum);
+    static InterSymbol reserve(vector<string> ln, const string& token);
+	static bool isRelatOp(InterSymbol op);
+	int maxLineIndex();
+    int getAppear(SymbolC *sym, int startL);
+    
 };
 
 

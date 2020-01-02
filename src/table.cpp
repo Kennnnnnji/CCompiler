@@ -24,14 +24,22 @@ SymbolC *SymTable::find(string nam, int level, bool outer) {
 	SymbolC ret = * new SymbolC();
 	auto pr = sym_map.equal_range(nam); 
 	while (pr.first != pr.second) {
-		if ((pr.first->second.level == level ||
-			 (pr.first->second.level < level && outer)) &&
-				pr.first->second.is_valid()) {
+		if ((pr.first->second.level == level)) { // ||
 			return &(pr.first->second);
 		}
 		++pr.first; // Increment begin iterator
 	}
+	if (outer) {
+		pr = sym_map.equal_range(nam);
+		while (pr.first != pr.second) {
+			if (lvlMng.is_a_b_outer(pr.first->second.level, level)) {
+				return &(pr.first->second);
+			}
+			++pr.first; // Increment begin iterator
+		}
+	}
 	cerr << "CANNOT FIND SYMBOLC!" << nam << ", " << level << endl;
+ 	exit(-9);
 	return new SymbolC();
 }
 
@@ -83,6 +91,32 @@ void SymTable::devalid(int level) {
 		}
 		e = *e.getNext();
 	}
+}
+
+// get var cnt in a level, except str, include intervar
+int SymTable::lvl_var_cnt(int levelid, bool includeArrSize) { // include para
+	int cnt = 0;
+	auto iter = sym_map.begin();
+	while (iter != sym_map.end()) {
+		if (iter->second.level == levelid && iter->second.spec.baseType != BaseType::STRING) {
+			cnt++;
+			if (iter->second.arr && includeArrSize) cnt += iter->second.size / 4 - 1;
+		}
+		iter++;
+	}
+	return cnt;
+}
+
+int SymTable::lvl_var_cnt_except_para_arr(int levelid) { // include para
+	int cnt = 0;
+	auto iter = sym_map.begin();
+	while (iter != sym_map.end()) {
+		if (iter->second.isVar && iter->second.level == levelid && iter->second.spec.baseType != BaseType::STRING) {
+			cnt++;
+		}
+		iter++;
+	}
+	return cnt;
 }
 
 SymbolEntry::SymbolEntry() {
@@ -143,4 +177,14 @@ bool SymbolC::is_valid() { return valid; }
 Level::Level(int id, int outid) {
 	this->id = id;
 	this->outid = outid;
+}
+
+bool LevelMng::is_a_b_outer(int a, int b) {
+  	Level l = levelVec.at(b);
+	while (l.id >= b) {
+		if (l.outid == a) return true;
+		if (l.outid == 0) return false;
+		l = levelVec.at(l.outid);
+	}
+	return false;
 }

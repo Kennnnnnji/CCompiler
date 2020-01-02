@@ -19,7 +19,9 @@ public:
 	std::string name = "";
 	int value{};
 	bool idle{};
+    bool protect = false;
 
 	Register(RegType t, int id);
+	std::string sid();
 };
 

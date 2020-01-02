@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <cctype>
 #include <set>
@@ -10,7 +9,7 @@ using namespace std;
 int curLevel = 0;
 bool isNegative = false;
 BaseType returnStatType;
-
+bool expHasMinu = false;
 InterSym *expression();
 
 InterSym *r_f_stat(bool reportIdenNotFindError);
@@ -41,15 +40,17 @@ void level_retract() {
 static void error() {
     cerr << "err: in syntax.cpp, cur = " << cur << ", curChar = " << curChar << endl;
     cerr << src + cur << endl;
+    //exit(-11);
 }
 
 static void error(string s) {
     cerr << s << " in syntax.cpp, cur = " << cur << ", curChar = " << curChar << endl;
     cerr << src + cur << endl;
+    //exit(-11);
 }
 
 void find_syn_part(string part) {
-    outfile << part << endl;
+    //outfile << part << endl;
 }
 
 bool assert_symbol_is(Symbol sy) {
@@ -98,7 +99,9 @@ bool is_int() {
     if (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
         isNegative = (symbol == Symbol::MINU);
         getsym();
-    }
+	} else {
+		isNegative = false;
+	}
     bool ret = is_unsigned_int();
     sym_output();
     find_syn_part("<整数>");
@@ -146,7 +149,7 @@ void const_definition() {
             if (!assert_symbol_is(Symbol::CHARCON)) {
                 globalErr.catch_e(curLineNum, "o");
             }
-            symC.value = character;
+            symC.value = (int)character;
             if (!symTable.add(symC, get_out_level())->duplicate) {
                 genInter.find_const_var_def(symC);
             }
@@ -202,15 +205,15 @@ void var_definition(Symbol varsym) {
         if (token.at(0) == '[') {
             getsym();
             is_unsigned_int();
-			sbc.arr = true;
-			sbc.size = number * 4;
+            sbc.arr = true;
+            sbc.size = number * 4;
             getsym();
             if (token.at(0) != ']') error();
             getsym();
         }
-		if (!symTable.add(sbc, get_out_level())->duplicate) {
-			genInter.find_normal_var_def(sbc);
-		}
+        if (!symTable.add(sbc, get_out_level())->duplicate) {
+            genInter.find_normal_var_def(sbc);
+        }
     }
     sym_retract();
     sym_output();
@@ -234,8 +237,8 @@ void var_description() {
             if (token.at(0) == '[') {
                 getsym();
                 is_unsigned_int();
-				sbc.arr = true;
-				sbc.size = number * 4;
+                sbc.arr = true;
+                sbc.size = number * 4;
                 getsym();
                 if (token.at(0) != ']') error();
                 getsym();
@@ -246,6 +249,7 @@ void var_description() {
             var_definition(varsym);
             if (token.at(0) != ';') error();
             getsym();
+            varsym = symbol;
             have_var_def = true;
         } else {    // func
             sym_retract();
@@ -294,13 +298,36 @@ InterSym *factor() {
                 //globalErr.catch_e(curLineNum, "e");
                 n_r_f_stat();
             } else {
-                iS = r_f_stat(false);
+                iS = r_f_stat(false);   // @tmp saves RET
+            }
+        } else {
+            iS->symc = symTable.find(iS->name, curLevel, true);
+            if (iS->symc->spec.isConst) {
+                if (iS->symc->spec.baseType == BaseType::INT) {
+                    iS->interType = InterType::INTCONST;
+                    iS->name = to_string(iS->symc->value);
+                    iS->intcon = iS->symc->value;
+                } else if (iS->symc->spec.baseType == BaseType::CHAR) {
+                    iS->interType = InterType::CHARCONST;
+                    iS->name = string(1, (char)(iS->symc->value));
+                    iS->singleChar = true;
+                    iS->intcon = iS->symc->value;
+                }
             }
         }
-    } else if (symbol == Symbol::LPARENT) {
+    } else if (symbol == Symbol::LPARENT) { // (exp)
         iS->interType = InterType::INTER;
         getsym();
-        iS->name = expression()->name;
+        InterSym *exp = expression();
+        if (exp->interType == InterType::CHARCONST) {   // char -> int
+            iS->name = to_string((int)exp->name[1]);
+        } else {
+            iS->name = exp->name;
+        }
+        if (iS->name[0] == '-') {
+            iS->name = iS->name.substr(1);
+            genInter.prt(iS->name + " = -" + iS->name + "\n");
+        }
         assert_symbol_is(Symbol::RPARENT);
         getsym();
     } else if (symbol == Symbol::PLUS || symbol == Symbol::MINU
@@ -312,8 +339,9 @@ InterSym *factor() {
         getsym();
     } else if (symbol == Symbol::CHARCON) {
         iS->interType = InterType::CHARCONST;
-        iS->name = '\'' + token + '\'';
-		iS->singleChar = true;
+        iS->name = token;	// fuck this off
+        iS->intcon = int(token[0]);
+        iS->singleChar = true;
         getsym();
     } else {
         error();
@@ -329,7 +357,6 @@ InterSym *item() {
     string toPrint;
     InterSym *iS = new InterSym();
     InterSym *firstFact = factor();
-	//firstFact->singleChar = firstFact->singleChar;
     int cnt = 1;
     bool factorOver1 = false;
     while (symbol == Symbol::MULT || symbol == Symbol::DIV) {
@@ -338,6 +365,8 @@ InterSym *item() {
             iS->set_tmp_name();
             if (firstFact->interType == InterType::SYMC) {
                 toPrint += iS->name + " = _" + firstFact->name;
+            } else if (firstFact->interType == InterType::CHARCONST) {
+                toPrint += iS->name + " = " + to_string((int)firstFact->name[0]);
             } else {
                 toPrint += iS->name + " = " + firstFact->name;
             }
@@ -345,13 +374,15 @@ InterSym *item() {
         }
         if (++cnt > 2) {
             toPrint += '\n' + iS->name + " = " + iS->name;
-            cnt = 1;
+            cnt = 2;
         }
         toPrint += (symbol == Symbol::MULT ? " * " : " / ");
         getsym();
         InterSym *fact = factor();
         if (fact->interType == InterType::SYMC) {
             toPrint += "_" + fact->name;
+        } else if (fact->interType == InterType::CHARCONST) {
+            toPrint += to_string(int(fact->name[0]));    // attention: charcon!
         } else {
             toPrint += fact->name;
         }
@@ -374,10 +405,31 @@ InterSym *expression() {
     BaseType ret = BaseType::INT;
     bool sureInt = false;
     InterSym *iSym = new InterSym();
+    iSym->interType = InterType::INTER;
+    iSym->set_tmp_name();
+    toPrint += iSym->name + " = ";
+    bool minu = false;
     if (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
-        toPrint += (symbol == Symbol::PLUS ? "+" : "-");
-        getsym();
         sureInt = true;
+        toPrint += (symbol == Symbol::PLUS ? "+" : "-");
+        minu = (symbol == Symbol::PLUS) ? false : true;
+        Symbol preOp = symbol;
+        getsym();
+        if (symbol == Symbol::PLUS || symbol == Symbol::MINU) { // --n x, -n v .--1 v
+            getsym();
+            if (symbol == Symbol::INTCON) {
+                sym_retract();
+                sym_retract();
+                getsym();
+            } else {    // cant happen? a = --n;
+                sym_retract();
+                sym_retract();
+                getsym();
+                toPrint[toPrint.size() - 1] = (symbol == preOp) ? '+' : '-';
+                minu = (symbol == Symbol::PLUS) ? -minu : minu;
+                getsym();
+            }
+        }
     } else if (symbol == Symbol::LPARENT) {
         sureInt = true;
     }
@@ -392,33 +444,90 @@ InterSym *expression() {
             }
         }
     }
-	auto tmp = item();
-	if (tmp->singleChar) {
-		iSym->singleChar = true;
-	}
-	iSym->interType = InterType::INTER;
-	iSym->set_tmp_name();
-	toPrint += iSym->name + " = ";
-	toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;    // 项
+    auto tmp = item();  // first item
     int itemCnt = 1;
+    if (symbol == Symbol::PLUS || symbol == Symbol::MINU) { // item > 1
+        if (tmp->singleChar) {
+            iSym->singleChar = true;
+            toPrint += to_string((int)tmp->name[0]);
+        } else {
+            toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;    // 项
+        }
+        iSym->singleChar = false;
+        iSym->baseType = BaseType::INT;
+    } else {
+        if (tmp->singleChar) {
+            iSym->singleChar = true;
+            toPrint += "\'" + tmp->name + "\'";
+        } else {
+            toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;    // 项
+        }
+    }
     while (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
         if (++itemCnt > 2) {
             toPrint += '\n';
             toPrint += iSym->name + " = " + iSym->name;
-            itemCnt = 1;
+            itemCnt = 2;
         }
         ret = BaseType::INT;
+		Symbol preOp = symbol;
         toPrint += (symbol == Symbol::PLUS ? " + " : " - ");
         getsym();
+		if (symbol == Symbol::PLUS || symbol == Symbol::MINU) {
+			toPrint[toPrint.size() - 2] = (symbol == preOp)? '+':'-';
+			getsym();
+		}
         auto tmp = item();
-        toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;
+		if (tmp->singleChar) {
+			toPrint += to_string(tmp->intcon);
+		} else {
+			toPrint += (tmp->interType == InterType::SYMC) ? "_" + tmp->name : tmp->name;
+		}
     }
+	if (itemCnt == 1) {	// A = B, 注意类型转化
+		if (sureInt) {
+			toPrint += " + 0";	// attend in operation
+		}
+	}
     sym_retract();
-	genInter.prt(toPrint + "\n");
     sym_output();
     find_syn_part("<表达式>");
     getsym();
+    if (itemCnt == 1) {
+        tmp->baseType = sureInt ? BaseType::INT : ret;
+        switch (tmp->interType) {
+            case InterType::SYMC:
+                tmp->name = "_" + tmp->name;
+                if (minu) {
+                    iSym->baseType = sureInt ? BaseType::INT : ret;
+                    genInter.prt(iSym->name + " = -" + tmp->name + "\n");
+                    return iSym;
+                }
+                break;
+            case InterType::INTER:
+                if (minu) {
+                    iSym->baseType = sureInt ? BaseType::INT : ret;
+                    genInter.prt(iSym->name + " = -" + tmp->name + "\n");
+                    return iSym;
+                }
+                break;
+            case InterType::INTCONST:
+                tmp->name = minu ? "-" + tmp->name : tmp->name;
+                break;
+            case InterType::CHARCONST:
+                if (minu) {
+                    tmp->name = "-" + to_string((int)tmp->name[0]);
+                    tmp->interType = InterType::INTCONST;
+                } else {
+                    tmp->name = "\'" + tmp->name + "\'";    // push '42'
+                }
+            default:
+                break;
+        }
+        return tmp;
+    }
     iSym->baseType = sureInt ? BaseType::INT : ret;
+    genInter.prt(toPrint + "\n");
     return iSym;
 }
 
@@ -462,6 +571,10 @@ InterSym *r_f_stat(bool reportIdenNotFindError) {
     auto *iS = new InterSym;
     iS->interType = InterType::INTER;
     iS->name = "RET";
+
+    InterSym *iSym = new InterSym();
+    iSym->interType = InterType::INTER;
+    iSym->set_tmp_name();
     string toPrint;
     assert_symbol_is(Symbol::IDENFR);
     SymbolC *fun = new SymbolC();
@@ -478,12 +591,16 @@ InterSym *r_f_stat(bool reportIdenNotFindError) {
         toPrint += "push " + paras_list.at(i)->name + '\n';
     }
     toPrint += "call _" + fun->name + '\n';
+
+    toPrint += iSym->name + " = RET\n";
+    iSym->interType = InterType::INTER;
+	iSym->baseType = fun->spec.baseType; // BaseType::INT;
     assert_symbol_is(Symbol::RPARENT);
     genInter.prt(toPrint);
     sym_output();
     find_syn_part("<有返回值函数调用语句>");
     getsym();
-    return iS;
+    return iSym;
 }
 
 void n_r_f_stat() {
@@ -510,7 +627,7 @@ void n_r_f_stat() {
     getsym();
 }
 
-void condition() {
+void condition_stat() {
     string toPrint = "";
     auto exp = expression();
     if (exp->baseType != BaseType::INT) {
@@ -533,23 +650,24 @@ void condition() {
     getsym();
 }
 
-void if_stat(bool returned) {
+bool if_stat(bool returned) {
+    bool haveRet = false;
     string lb1 = genInter.gen_label();
     assert_symbol_is(Symbol::IFTK);
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
-    condition();
+    condition_stat();
     assert_symbol_is(Symbol::RPARENT);
     genInter.prt("BZ " + lb1 + '\n');
     getsym();
-    statement(returned);
+    haveRet |= statement(returned);
     if (symbol == Symbol::ELSETK) {
         string lb2 = genInter.gen_label();
         genInter.prt("GOTO " + lb2 + '\n');
         genInter.prt(lb1 + " :\n");
         getsym();
-        statement(returned);
+        haveRet |= statement(returned);
         genInter.prt(lb2 + " :\n");
     } else {
         genInter.prt(lb1 + " :\n");
@@ -558,6 +676,7 @@ void if_stat(bool returned) {
     sym_output();
     find_syn_part("<条件语句>");
     getsym();
+    return haveRet;
 }
 
 int step_len() {
@@ -570,7 +689,7 @@ int step_len() {
 
 void loop_stat(bool returned) {
     string toPrint = "";
-    string lb1 = genInter.gen_label(), lb2;
+    string lb1 = genInter.gen_label_loop_start(), lb2;
     string idfr, idfr2, op;
     int stepLen;
     switch (symbol) {
@@ -581,8 +700,8 @@ void loop_stat(bool returned) {
             toPrint += (lb1 + " :\n");
             genInter.prt(toPrint);
             toPrint = "";
-            condition();
-            lb2 = genInter.gen_label();
+            condition_stat();
+            lb2 = genInter.gen_label_loop_end();
             toPrint += ("BZ " + lb2 + '\n');
             assert_symbol_is(Symbol::RPARENT);
             getsym();
@@ -602,7 +721,7 @@ void loop_stat(bool returned) {
             getsym();
             assert_symbol_is(Symbol::LPARENT);
             getsym();
-            condition();
+            condition_stat();
             assert_symbol_is(Symbol::RPARENT);
             toPrint += ("BNZ " + lb1 + '\n');
             getsym();
@@ -622,8 +741,8 @@ void loop_stat(bool returned) {
             getsym();
             genInter.prt(toPrint);
             toPrint = "";
-            condition();
-            lb2 = genInter.gen_label();
+            condition_stat();
+            lb2 = genInter.gen_label_loop_end();
             toPrint += ("BZ " + lb2 + "\n");
             assert_symbol_is(Symbol::SEMICN);
             getsym();
@@ -635,7 +754,8 @@ void loop_stat(bool returned) {
             assert_symbol_is(Symbol::IDENFR);
             idfr2 = token;
             getsym();
-            if (symbol != Symbol::PLUS && symbol != Symbol::MINU) error();
+            if (symbol != Symbol::PLUS && symbol != Symbol::MINU) 
+                error();
             op = token;
             getsym();
             stepLen = step_len();
@@ -724,18 +844,18 @@ void prt_stat() {
     getsym();
     if (symbol == Symbol::STRCON) {
         sym_output();
-		static int strCnt = 0;
-		string strName = "$str" + to_string(strCnt++);
-		SymbolC* strSym = new SymbolC(strName, curLevel, curLineNum, *new Specifier(true, BaseType::STRING));
-		strSym->strVal = token;
-		symTable.add(*strSym, get_out_level());
+        static int strCnt = 0;
+        string strName = "$str" + to_string(strCnt++);
+        SymbolC *strSym = new SymbolC(strName, curLevel, curLineNum, *new Specifier(true, BaseType::STRING));
+        strSym->strVal = token;
+        symTable.add(*strSym, get_out_level());
         find_syn_part("<字符串>");
         //toPrint += "push \"" + token + "\"\n";
         toPrint += "push " + strName + "\n";
         getsym();
         if (symbol == Symbol::COMMA) {
             getsym();
-			toPrint += "push " + expression()->name + "\n";
+            toPrint += "push " + expression()->name + "\n";
         }
     } else {
         toPrint += "push " + expression()->name + "\n";
@@ -774,12 +894,12 @@ bool ret_stat(bool returned) {
 
 bool statement(bool returned) {
     bool haveRetStat = false;
-    bool forReturnFStat;
+    bool forReturnFStat = false;
     bool isret;
     if (symbol != Symbol::RBRACE) {
         switch (symbol) {
             case Symbol::IFTK:
-                if_stat(returned);
+                haveRetStat |= if_stat(returned);
                 break;
             case Symbol::WHILETK:
             case Symbol::FORTK:
@@ -789,7 +909,7 @@ bool statement(bool returned) {
             case Symbol::LBRACE:    // '{' for, if ... a new area
                 getsym();
                 //gen_new_level();
-                stat_list(returned);
+                haveRetStat |= stat_list(returned);
                 assert_symbol_is(Symbol::RBRACE);
                 //level_retract();
                 getsym();
@@ -927,8 +1047,13 @@ void param_list(SymbolC *sbc) {
 
 void returned_func_def() {
     SymbolC *sbc = def_head();
+    string funcLabel = genInter.gen_func_label(sbc->name);
+    string endLabel = genInter.gen_func_end(sbc->name);
+    //genInter.prt("GOTO\t" + endLabel + "\n");
+    genInter.prt(funcLabel + " :\n");
     (*sbc).func = true;
     gen_new_level();
+    (*sbc).inLevel = curLevel;
     assert_symbol_is(Symbol::LPARENT);
     sym_output();
     getsym();
@@ -949,6 +1074,7 @@ void returned_func_def() {
     find_syn_part("<有返回值函数定义>");
     getsym();
     level_retract();
+    genInter.prt(endLabel + " :\n");
 }
 
 void un_returned_func_def() {
@@ -958,8 +1084,13 @@ void un_returned_func_def() {
     getsym();
     assert_symbol_is(Symbol::IDENFR);
     SymbolC sbc(token, curLevel, curLineNum, spc);
+    string funcLabel = genInter.gen_func_label(sbc.name);
+    string endLabel = genInter.gen_func_end(sbc.name);
+    //genInter.prt("GOTO\t" + endLabel + "\n");
+    genInter.prt(funcLabel + " :\n");
     sbc.func = true;
     gen_new_level();
+    sbc.inLevel = curLevel;
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     sym_output();
@@ -978,6 +1109,7 @@ void un_returned_func_def() {
     find_syn_part("<无返回值函数定义>");
     getsym();
     level_retract();
+    genInter.prt(endLabel + " :\n");
 }
 
 void main_f() {
@@ -989,6 +1121,7 @@ void main_f() {
     SymbolC sbc(token, curLevel, curLineNum, spc);
     sbc.func = true;
     gen_new_level();
+    sbc.inLevel = curLevel;
     getsym();
     assert_symbol_is(Symbol::LPARENT);
     getsym();
@@ -1038,6 +1171,6 @@ void program() {
     } else {
         error();
     }
-	genInter.prt("#EOF :");
+    genInter.prt("#EOF :");
     find_syn_part("<程序>");
 }

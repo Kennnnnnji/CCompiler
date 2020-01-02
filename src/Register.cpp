@@ -40,3 +40,7 @@ Register::Register(RegType t, int id) {
 			break;
 	}
 }
+
+std::string Register::sid() {
+    return std::to_string(id);
+}

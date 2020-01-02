@@ -22,13 +22,24 @@ public:
 
     RegPool();
     Register* apply(RegType regType); // apply for a reg
-    void release(Register* reg);
-    void bindSym2Reg(SymbolC* symbolC, Register* reg);
+    Register* apply(RegType regType, int id); // apply for a reg
+    Register* apply_auto(SymbolC* symc); // t for @tmp, s for local var
+
+    Register* bindSym2Reg(SymbolC* symbolC, Register* reg);
     bool isSymInReg(SymbolC* symbolC);
 
     void err(string s);
-
+    void erase(Register* reg);
+    void release(Register* reg);
     void release(SymbolC *symbolC);
+	void releaseAll(RegType regType);
+	void releaseAll();
+	void releaseAllFull(bool exceptTmpVar);
+    void release_save_gp(SymbolC* symbolC);
+    void release_save_gp(Register* reg);
+    void release_all_save_gp();
+    void release_all_except_s();
+    void release_all_except_s_tmp();
 
     Register *findReg(SymbolC *symbolC);
 };
